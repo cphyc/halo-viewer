@@ -1,0 +1,3 @@
+[submodule "src/pyodide/yt_derived_fields"]
+	path = src/pyodide/yt_derived_fields
+	url = https://github.com/AnatoleStorck/yt_derived_fields
