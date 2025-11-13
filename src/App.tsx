@@ -87,25 +87,25 @@ function HaloPanel({ halo }: { halo: HaloGlobalInfo }) {
     <div className="grid2">
       <div className="card">
         <div className="card-title">Global Information</div>
-        <InfoRow label="Halo ID" value={halo.id} />
+        <InfoRow label="Halo ID" value={Number(halo.id)} noLatex={true} />
 
-        <InfoRow label="Name" value={halo.name ?? ''} />
+        <InfoRow label="Name" value={halo.name ?? ''} noLatex={true} />
 
         <InfoRow
           labelLatex="M_{\rm DM}"
-          value={halo.dm_mass.toExponential(3)}
+          value={halo.dm_mass}
           unit="M_\odot"          // solar masses
         />
 
         <InfoRow
           labelLatex="M_\star"
-          value={halo.stellar_mass.toExponential(3)}
+          value={halo.stellar_mass}
           unit="M_\odot"
         />
 
         <InfoRow
           labelLatex="R_{\rm vir}"
-          value={halo.r_vir.toFixed(2)}
+          value={halo.r_vir}
           unit="\mathrm{kpc}"
         />
       </div>
