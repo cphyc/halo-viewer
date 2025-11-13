@@ -8,6 +8,7 @@ import SpectrumChartjs from './components/SpectrumChartjs';
 import CutoutRunner from './components/CutoutRunner';
 import InfoRow from './components/InfoRow';
 import './styles.css';
+import HaloCatalogExample from './components/HaloCatalogExample';
 
 const qc = new QueryClient();
 
@@ -64,7 +65,7 @@ function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
   );
 }
 
-function HaloPanel({ halo }: { halo: HaloGlobalInfo }) {
+function HaloPanel({ halo, environmentComponent }: { halo: HaloGlobalInfo; environmentComponent: React.ReactNode }) {
   const [imgKey, setImgKey] = useState<string>(() => Object.keys(halo.images ?? {})[0] ?? '');
   useEffect(() => {
     const first = Object.keys(halo.images ?? {})[0] ?? '';
@@ -75,6 +76,10 @@ function HaloPanel({ halo }: { halo: HaloGlobalInfo }) {
 
   return (
     <div className="grid2">
+      <div className="card">
+        <div className="card-title">Environment</div>
+        {environmentComponent}
+      </div>
       <div className="card">
         <div className="card-title">Global Information</div>
         <InfoRow label="Halo ID" value={Number(halo.id)} noLatex={true} />
@@ -136,6 +141,11 @@ function Shell() {
     }
   }, [manQ.data, currentId]);
 
+  // Create a persistent environment component that reuses the Three.js canvas
+  const environmentComponent = useMemo(() => (
+    <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
+  ), [currentId]);
+
   return (
     <div className="container">
       <header className="header">
@@ -156,7 +166,7 @@ function Shell() {
 
       {!currentId && <div className="muted">No halo selected.</div>}
       {haloQ.error && <div className="error">Failed to load halo metadata.</div>}
-      {haloQ.data && <HaloPanel halo={haloQ.data} />}
+      {haloQ.data && <HaloPanel halo={haloQ.data} environmentComponent={environmentComponent} />}
 
       <footer className="footer">
         <span className="muted">Megatron Data Viewer • Cadiou, Katz, Rey</span>
