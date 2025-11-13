@@ -64,7 +64,7 @@ export default function CutoutRunner({
 
   return (
     <div className="card">
-      <div className="card-title">Cutout (Pyodide)</div>
+      <div className="card-title">Cutout</div>
       <div className="muted" style={{ marginBottom: 8 }}>Status: {status}</div>
       {error && <div className="error">Error: {error}</div>}
       <button onClick={loadCutout} >

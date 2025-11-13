@@ -27,16 +27,6 @@ function useHalo(id: string | null) {
   });
 }
 
-// function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
-//   const url = halo.spectrum ? halo.spectrum : spectrumPath(halo.id);
-//   const full = resolveURL(url);
-//   return (
-//     <div className="card">
-//       <div className="card-title">Spectrum (Pyodide + Matplotlib)</div>
-//       <SpectrumPyodide specUrl={full} height={260} />
-//     </div>
-//   );
-// }
 
 function useSpectrum(specPath: string | null) {
   return useQuery<SpectrumJSON>({
@@ -169,7 +159,7 @@ function Shell() {
       {haloQ.data && <HaloPanel halo={haloQ.data} />}
 
       <footer className="footer">
-        <span className="muted">Static SPA • Vite + React + TanStack Query • Pyodide + Matplotlib</span>
+        <span className="muted">Megatron Data Viewer • Cadiou, Katz, Rey</span>
       </footer>
     </div>
   );
