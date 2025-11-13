@@ -1,10 +1,12 @@
 // src/components/CutoutRunner.tsx
 import { useEffect, useRef, useState } from 'react';
 
+export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
+
 export default function CutoutRunner({
   cutoutUrl,
   wheelUrls = [
-    '/wheels/yt_experiments-0.3.0-cp312-cp312-pyodide_2024_0_wasm32.whl',
+    `${BASE}/wheels/yt_experiments-0.3.0-cp312-cp312-pyodide_2024_0_wasm32.whl`,
     'lzma', // Required for pooch
     'pooch',
     'scipy',
