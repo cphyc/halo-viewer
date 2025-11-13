@@ -357,7 +357,6 @@ axis = "${axis}"
 width = ${width} * unyt.kpc
 field = tuple(field_js.split("__"))
 
-
 # Create projection plot
 p = yt.ProjectionPlot(
    ds,
