@@ -10,6 +10,30 @@ export type HaloGlobalInfo = {
     spectrum: string;
 };
 
+export type HaloCatalogData = {
+  id: number;
+  x: number;
+  y: number;
+  z: number;
+  mass: number; // m200b column in Msun (h-corrected)
+  r200b: number; // virial radius in Mpc (h-corrected)
+  rc: number; // core radius in Mpc (h-corrected)
+};
+
+export type HaloCatalog = {
+  halos: HaloCatalogData[];
+  h0: number; // Hubble parameter
+  stats: {
+    total: number;
+    massRange: [number, number];
+    positionRange: {
+      x: [number, number];
+      y: [number, number];
+      z: [number, number];
+    };
+  };
+};
+
 
 export type SpectrumJSON =
     | { lambda: number[]; flux: number[] } // common format

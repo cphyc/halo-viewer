@@ -35,7 +35,7 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({ selectedHaloId:
             id="massThreshold"
             type="range"
             min="0"
-            max="8"
+            max="10"
             step="0.1"
             value={Math.log10(massThreshold)}
             onChange={(e) => setMassThreshold(Math.pow(10, parseFloat(e.target.value)))}

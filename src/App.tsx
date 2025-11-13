@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { getHalo, getManifest, getSpectrum, spectrumPath, resolve as resolveURL } from './api';
-import type { HaloGlobalInfo, SpectrumJSON, SpecData } from './types';
-// import SpectrumPyodide from './components/SpectrumPyodide';
-// import SpectrumCanvas from './components/SpectrumCanvas';
+import { getHalo, getSpectrum, getHalos, spectrumPath, resolve as resolveURL } from './api';
+import type { HaloGlobalInfo, SpectrumJSON, SpecData, HaloCatalog, HaloCatalogData } from './types';
 import SpectrumChartjs from './components/SpectrumChartjs';
 import CutoutRunner from './components/CutoutRunner';
 import InfoRow from './components/InfoRow';
@@ -13,18 +11,54 @@ import HaloCatalogExample from './components/HaloCatalogExample';
 const qc = new QueryClient();
 
 function useManifest() {
+  // Use the same catalog query that HaloCatalogPointCloud uses
+  const catalogQuery = useHaloCatalog();
+  
   return useQuery({
-    queryKey: ['manifest'],
-    queryFn: ({ signal }) => getManifest(signal),
-    staleTime: 60_000,
+    queryKey: ['manifest', 'derived'],
+    queryFn: async () => {
+      if (!catalogQuery.data) {
+        throw new Error('Catalog not loaded');
+      }
+      
+      // Convert catalog halos to manifest format
+      // Sort by mass (descending) to show most massive halos first
+      const sortedHalos = [...catalogQuery.data.halos].sort((a, b) => b.mass - a.mass);
+      
+      // Limit to top 50 halos to keep dropdown manageable and avoid UI issues
+      const topHalos = sortedHalos.slice(0, 50);
+      
+      const manifestHalos = topHalos.map(halo => ({
+        id: halo.id.toString().padStart(6, '0'), // Format as "000001", "000002", etc.
+        name: `Halo ${halo.id} (${(halo.mass / 1e12).toFixed(1)}e12 M☉)`
+      }));
+
+      return { halos: manifestHalos };
+    },
+    enabled: !!catalogQuery.data,
+    staleTime: Infinity, // Never goes stale since it's derived from catalog data
+    placeholderData: {
+      halos: [
+        { id: '000001', name: 'Loading...' },
+        { id: '000002', name: 'Please wait...' }
+      ]
+    },
   });
 }
 
 function useHalo(id: string | null) {
-  return useQuery<HaloGlobalInfo>({
+  return useQuery<HaloCatalogData | null>({
     enabled: !!id,
     queryKey: ['halo', id],
     queryFn: ({ signal }) => getHalo(id!, signal),
+  });
+}
+
+function useHaloCatalog(catalogUrl: string = 'demo-halos/halos_00100.ascii') {
+  return useQuery<HaloCatalog>({
+    queryKey: ['halo-catalog', catalogUrl],
+    queryFn: ({ signal }) => getHalos(catalogUrl, signal),
+    staleTime: 300_000, // 5 minutes
   });
 }
 
@@ -65,15 +99,7 @@ function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
   );
 }
 
-function HaloPanel({ halo, environmentComponent }: { halo: HaloGlobalInfo; environmentComponent: React.ReactNode }) {
-  const [imgKey, setImgKey] = useState<string>(() => Object.keys(halo.images ?? {})[0] ?? '');
-  useEffect(() => {
-    const first = Object.keys(halo.images ?? {})[0] ?? '';
-    setImgKey(first);
-  }, [halo.id]);
-
-  const imageURL = useMemo(() => (imgKey && halo.images?.[imgKey]) ? new URL(halo.images[imgKey], window.location.origin).toString() : '', [imgKey, halo.images]);
-
+function HaloPanel({ halo, environmentComponent }: { halo: HaloCatalogData; environmentComponent: React.ReactNode }) {
   return (
     <div className="grid2">
       <div className="card">
@@ -82,50 +108,38 @@ function HaloPanel({ halo, environmentComponent }: { halo: HaloGlobalInfo; envir
       </div>
       <div className="card">
         <div className="card-title">Global Information</div>
-        <InfoRow label="Halo ID" value={Number(halo.id)} noLatex={true} />
-
-        <InfoRow label="Name" value={halo.name ?? ''} noLatex={true} />
+        <InfoRow label="Halo ID" value={halo.id} noLatex={true} />
 
         <InfoRow
-          labelLatex="M_{\rm DM}"
-          value={halo.dm_mass}
+          labelLatex="M_{200b}"
+          value={halo.mass}
           unit="M_\odot"          // solar masses
         />
 
         <InfoRow
-          labelLatex="M_\star"
-          value={halo.stellar_mass}
-          unit="M_\odot"
+          labelLatex="R_{200b}"
+          value={halo.r200b * 1000}  // Convert Mpc to kpc for display
+          unit="\mathrm{kpc}"
         />
 
         <InfoRow
-          labelLatex="R_{\rm vir}"
-          value={halo.r_vir}
+          labelLatex="R_c"
+          value={halo.rc * 1000}     // Convert Mpc to kpc for display  
           unit="\mathrm{kpc}"
         />
-      </div>
 
+        <InfoRow
+          label="Position"
+          value={`(${halo.x.toFixed(1)}, ${halo.y.toFixed(1)}, ${halo.z.toFixed(1)})`}
+          unit="\mathrm{Mpc}"
+          noLatex={true}
+        />
+      </div>
+      
       <div className="card">
-        <div className="card-title">Image</div>
-        {Object.keys(halo.images || {}).length === 0 && <div className="muted">No images provided.</div>}
-        {Object.keys(halo.images || {}).length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <label htmlFor="imgsel" className="muted" style={{ marginRight: 8 }}>View:</label>
-            <select id="imgsel" value={imgKey} onChange={(e) => setImgKey(e.target.value)}>
-              {Object.keys(halo.images).map(k => (
-                <option key={k} value={k}>{k}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {imageURL && (
-          <img src={imageURL} alt={`${halo.id} ${imgKey}`} style={{ width: '100%', borderRadius: 8 }} />
-        )}
+        <div className="card-title">Spectrum</div>
+        <div className="muted">Spectrum data available in catalog mode: halo_{halo.id.toString().padStart(6, '0')}_spectrum.json</div>
       </div>
-
-      <SpectrumCard halo={halo} />
-
-      <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${halo.id}_gas.bin`)} />
     </div>
   );
 }
@@ -155,7 +169,7 @@ function Shell() {
             <select value={currentId ?? ''} onChange={(e) => setCurrentId(e.target.value)}>
               {manQ.data!.halos.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {h.name ? `${h.name} (${h.id})` : h.id}
+                  {h.name || h.id}
                 </option>
               ))}
             </select>

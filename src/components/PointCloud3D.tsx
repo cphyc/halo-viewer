@@ -29,6 +29,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const controlsRef = useRef<InstanceType<typeof OrbitControls>>();
+  const materialRef = useRef<THREE.ShaderMaterial>();
   const frameId = useRef<number>();
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
@@ -46,6 +47,11 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
       rendererRef.current.setSize(width, height);
       cameraRef.current.aspect = width / height;
       cameraRef.current.updateProjectionMatrix();
+    }
+
+    // Update shader uniform for viewport size
+    if (materialRef.current) {
+      materialRef.current.uniforms.viewportSize.value.set(width, height);
     }
   }, []);
 
@@ -112,19 +118,31 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     const vertexShader = `
       attribute float size;
       attribute float coreSize;
+      uniform vec2 viewportSize;
       varying float vSize;
       varying float vCoreSize;
       
       void main() {
-        vSize = size;
-        vCoreSize = coreSize;
-        
-        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-        gl_Position = projectionMatrix * mvPosition;
-        
-        // Point size is 4 * radius (size parameter represents radius)
-        // True extent without scaling factor
-        gl_PointSize = size * 4.0 * 1000. / -mvPosition.z;
+      vSize = size;
+      vCoreSize = coreSize;
+      
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * mvPosition;
+      
+      // Calculate point size to match physical size in world space
+      // Transform center position and a point offset by the radius
+      vec4 center = projectionMatrix * mvPosition;
+      vec4 offset = projectionMatrix * modelViewMatrix * vec4(position + vec3(size, 0.0, 0.0), 1.0);
+      
+      // Calculate the screen-space difference 
+      vec2 centerScreen = center.xy / center.w;
+      vec2 offsetScreen = offset.xy / offset.w;
+      
+      // Convert from normalized device coordinates (-1 to 1) to pixels
+      float radiusPixels = length(offsetScreen - centerScreen) * viewportSize.x * 0.5;
+      
+      // gl_PointSize expects the diameter, not radius
+      gl_PointSize = radiusPixels * 2.0;
       }
     `;
 
@@ -134,48 +152,37 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
       varying float vCoreSize;
       
       void main() {
-        vec2 center = gl_PointCoord - 0.5;
-        float distance = length(center);
-        
-        // distance ranges from 0 (center) to 0.5 (edge of point)
-        // Since point size = 4 * radius, distance = 0.5 corresponds to 2 * radius
-        // So we map: distance -> physical_radius
-        float physicalRadius = distance * 4.0 * vSize; // distance * (point_size / gl_point_size_scale)
-        
-        // Discard pixels outside 2 * radius
-        if (distance > 0.5) {
-          discard;
-        }
-        
-        // Calculate NFW profile
-        float r_over_rs = physicalRadius / vCoreSize;
-        
-        float nfwDensity;
-        if (r_over_rs < 0.01) {
-          // Avoid singularity at center, use high density
-          nfwDensity = 100.0;
-        } else {
-          nfwDensity = 1.0 / (r_over_rs * pow(1.0 + r_over_rs, 2.0));
-        }
-        
-        // Use log-density for better visibility of small halos
-        float logDensity = log(nfwDensity + 1e-6); // Add small value to avoid log(0)
-        
-        // Normalize log-density to alpha range
-        // At r = rs, NFW = 0.25, log(0.25) ≈ -1.39, we want this to give alpha = 0.5
-        // Map log-density range to [0,1]
-        float minLogDensity = -2.0;  // Very low density
-        float maxLogDensity = 2.0;   // log(100) for center
-        
-        float normalizedLogDensity = (logDensity - minLogDensity) / (maxLogDensity - minLogDensity);
-        float alpha = clamp(normalizedLogDensity, 0.01, 1.0);
-        
-        // Fine-tune to ensure alpha = 0.5 at core radius
-        // log(0.25) = -1.39, so normalize around this
-        alpha = alpha * 1.2; // Boost overall brightness
-        alpha = clamp(alpha, 0., 1.0);
-        
+      vec2 center = gl_PointCoord - 0.5;
+      float distance = length(center);
+      
+      // distance ranges from 0 (center) to 0.5 (edge of point)
+      // Since gl_PointSize = diameter = 2 * radius, distance = 0.5 corresponds to radius
+      // So we map: distance -> physical_radius
+      float physicalRadius = distance * 2.0 * vSize;
+      
+      // Discard pixels outside virial radius
+      if (physicalRadius > vSize) {
+        discard;
+      }
+      
+      float alpha;
+      
+      // Opaque disk up to core radius
+      if (physicalRadius <= vCoreSize) {
+        alpha = 1.0;
+      } else {
+        // Linear falloff from core radius to virial radius
+        float falloffFactor = (vSize - physicalRadius) / (vSize - vCoreSize);
+        alpha = clamp(falloffFactor, 0.0, 1.0);
+      }
+      
+      // White line at virial radius (within a small band)
+      float virialBandWidth = vSize * 0.02; // 2% of virial radius
+      if (physicalRadius >= vSize - virialBandWidth && physicalRadius <= vSize) {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 0.8); // White line
+      } else {
         gl_FragColor = vec4(color, alpha);
+      }
       }
     `;
 
@@ -184,13 +191,17 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
       vertexShader,
       fragmentShader,
       uniforms: {
-        color: { value: new THREE.Color(pointColor) }
+        color: { value: new THREE.Color(pointColor) },
+        viewportSize: { value: new THREE.Vector2(dimensions.width, dimensions.height) }
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthTest: true,
       depthWrite: false,
     });
+
+    // Store material reference for uniform updates
+    materialRef.current = material;
 
     // Create points object
     const points = new THREE.Points(geometry, material);
@@ -201,7 +212,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     scene.add(gridHelper);
 
     // Add coordinate axes helper
-    const axesHelper = new THREE.AxesHelper(2);
+    const axesHelper = new THREE.AxesHelper(.120);
     scene.add(axesHelper);
 
     // Mount the renderer
@@ -268,7 +279,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     const haloSize = size[haloIndex];
 
     // Calculate camera position (offset from halo center)
-    const distance = Math.max(haloSize * 10, 1.0);
+    const distance = Math.max(haloSize * 2, 1.0);
     const currentPosition = cameraRef.current.position.clone();
     const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
     
