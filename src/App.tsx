@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { getHalo, getManifest, getSpectrum, spectrumPath, resolve as resolveURL } from './api';
-import type { HaloGlobalInfo, SpectrumJSON } from './types';
+import type { HaloGlobalInfo, SpectrumJSON, SpecData } from './types';
 // import SpectrumPyodide from './components/SpectrumPyodide';
 // import SpectrumCanvas from './components/SpectrumCanvas';
 import SpectrumChartjs from './components/SpectrumChartjs';

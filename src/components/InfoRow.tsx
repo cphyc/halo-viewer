@@ -5,7 +5,7 @@ import 'katex/dist/katex.min.css';
 
 type Props = {
   /** Label text or TeX (e.g., 'r_vir' or 'Virial Radius') */
-  label: string;
+  label?: string;
   /** Value to display (number or string) */
   value: number | string | React.ReactNode;
   /** Unit text or TeX (e.g., 'M_\\odot', '\\mathrm{kpc}') */

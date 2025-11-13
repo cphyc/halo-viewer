@@ -114,7 +114,7 @@ png_bytes`);
       post('status', { status: `fetching cutout from ${fullUrl}` });
      
       // Skeleton code: converts JS Uint8Array → Python bytes for user code
-      const fullCode = `
+      const loadCode = `
 import numpy as np
 import yt
 from scipy.io import FortranFile
@@ -339,7 +339,34 @@ fname = pooch.retrieve(url, known_hash=None)
 ds = load_cutout(fname)
 ad = ds.all_data().exclude_nan(("gas", "density"))
 
-p = yt.ProjectionPlot(ds, "x", ("gas", "density"), center=ds.domain_center, width=(10, "kpc"), data_source=ad)
+["__".join(_) for _ in ds.derived_field_list]`;
+      post('status', { status: 'loading dataset…' });
+      const fields = await pyodide.runPythonAsync(loadCode);
+      post('status', { status: 'ready' });
+      const field_names = fields.toJs() as string[];
+      console.log('Available fields:', field_names);
+      post('set-fields', { fields: field_names });
+      post('loaded', {});
+   }
+
+   if (cmd == 'plotCutout') {
+     const { field, axis, width } = e.data;
+     const plotCode = `
+field_js = "${field}"
+axis = "${axis}"
+width = ${width} * unyt.kpc
+field = tuple(field_js.split("__"))
+
+
+# Create projection plot
+p = yt.ProjectionPlot(
+   ds,
+   axis,
+   field,
+   center=ds.domain_center,
+   width=width,
+   data_source=ad
+)
 p.save("tmp.png")
 
 # Read back PNG and send as data URL
@@ -347,8 +374,8 @@ with open("tmp.png", "rb") as f:
     png_bytes = f.read()
 `;
 
-      post('status', { status: 'running user code' });
-      const png = await pyodide.runPythonAsync(fullCode + `
+      post('status', { status: 'plotting…' });
+      const png = await pyodide.runPythonAsync(plotCode + `
 png_bytes`);
 
       await pyodide.runPythonAsync("print(p)");
@@ -356,7 +383,7 @@ png_bytes`);
       const dataUrl = 'data:image/png;base64,' + toBase64(u8);
       post('image', { dataUrl });
       // You can extend this to return structured results (e.g., images, numbers)
-      post('done', { ok: true });
+      post('plotting-done', { ok: true });
       return;
     }
   } catch (err: any) {

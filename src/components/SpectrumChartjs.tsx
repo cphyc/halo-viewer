@@ -14,6 +14,8 @@ import {
   Title,
 } from 'chart.js';
 
+import { SpecData } from '../types';
+
 Chart.register(
   LineController,
   LineElement,
@@ -26,11 +28,6 @@ Chart.register(
   Decimation,
   Title
 );
-
-export type SpecData = {
-  lambda: Float64Array | number[];
-  flux: Float64Array | number[];
-};
 
 type Props = {
   data: SpecData;

@@ -1,3 +1,13 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_DATA_BASE_URL?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
 import { HaloGlobalInfo, Manifest, SpectrumJSON } from './types';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;

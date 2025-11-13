@@ -17,8 +17,13 @@ export default function CutoutRunner({
 }) {
   const workerRef = useRef<Worker | null>(null);
   const [status, setStatus] = useState<string>('idle');
+  const [loaded, setLoaded] = useState<boolean>(false);
   const [img, setImg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [field_list, setFields] = useState<string[] | null>(null);
+  const [field, setField] = useState<string>('');
+  const [axis, setAxis] = useState<string>('x');
+  const [width, setWidth] = useState<number>(20);
 
   useEffect(() => {
     const w = new Worker(new URL('../pyodide/pyWorker.ts', import.meta.url), { type: 'classic' });
@@ -27,16 +32,32 @@ export default function CutoutRunner({
       const { type, ...rest } = e.data || {};
       if (type === 'status') setStatus(rest.status);
       if (type === 'error') { setStatus('error'); setError(rest.error); }
-      if (type === 'done')   setStatus('done');
-      if (type === 'image')  setImg(rest.dataUrl);
+      if (type === 'loaded') setLoaded(true);
+      if (type === 'plotting-done') setStatus('plotting-done');
+      if (type === 'image') setImg(rest.dataUrl);
+      if (type === 'set-fields') {
+        setFields(rest.fields);
+        setField("gas__density");
+      }
     };
     return () => { w.terminate(); };
   }, []);
 
-  function run() {
+  function loadCutout() {
     setStatus('starting');
     setError(null);
     workerRef.current?.postMessage({ cmd: 'runCutout', cutoutUrl, wheelUrls, pyCode });
+  }
+
+  function plotCutout() {
+    setStatus('starting');
+    setError(null);
+    workerRef.current?.postMessage({
+      cmd: 'plotCutout',
+      'field': field,
+      'axis': axis,
+      'width': width
+    });
   }
 
   return (
@@ -44,16 +65,51 @@ export default function CutoutRunner({
       <div className="card-title">Cutout (Pyodide)</div>
       <div className="muted" style={{ marginBottom: 8 }}>Status: {status}</div>
       {error && <div className="error">Error: {error}</div>}
-      <button onClick={run} >
-        Run Python on Cutout
+      <button onClick={loadCutout} >
+        Load cutout
       </button>
+      {loaded && (
+        <div>
+          <button onClick={plotCutout} >
+            Plot cutout
+          </button>
+          <div style={{ marginBottom: 8 }}>
+            <select value={field} onChange={e => setField(e.target.value)}>
+              <option value="" disabled>Select field...</option>
+              {field_list?.map((field: string) => (
+                <option key={field} value={field}>{field.replace("__", ", ")}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <select value={axis} onChange={e => setAxis(e.target.value)}>
+              <option value="">Select axis...</option>
+              <option value="x">x</option>
+              <option value="y">y</option>
+              <option value="z">z</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label htmlFor="width-input">Width (kpc): </label>
+            <input
+              id="width-input"
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="Enter width in kpc"
+              style={{ marginLeft: 4 }}
+              value={width}
+              onChange={e => setWidth(Number(e.target.value))}
+            />
+          </div>
+        </div>)}
       {img && (
-          <img
-            src={img}
-            alt="spectrum"
-            style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: 8 }}
-          />
-        )}
+        <img
+          src={img}
+          alt="spectrum"
+          style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: 8 }}
+        />
+      )}
     </div>
   );
 }

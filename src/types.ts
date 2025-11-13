@@ -19,3 +19,8 @@ export type SpectrumJSON =
 export type Manifest = {
     halos: { id: string; name?: string }[];
 };
+
+export type SpecData = {
+  lambda: Float64Array | number[];
+  flux: Float64Array | number[];
+};
