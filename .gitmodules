@@ -1,3 +1,6 @@
 [submodule "src/pyodide/yt_derived_fields"]
-	path = src/pyodide/yt_derived_fields
+	path = external/yt_derived_fields
 	url = https://github.com/AnatoleStorck/yt_derived_fields
+[submodule "src/pyodide/yt_experiments"]
+	path = external/yt_experiments
+	url = https://github.com/yt-project/yt_experiments
