@@ -36,13 +36,13 @@ It, however, requires two packages to be shipped as pre-compiled wheels:
 ```bash
 # Create wheels for yt_derived_fields
 (
-  cd src/pyodide/yt_derived_fields
+  cd external/yt_derived_fields
   uv build --wheel -o ../../../public/wheels/
 )
 
 # Create pyodide wheels for yt_experiments
 (
-  cd src/pyodide/yt_experiments
+  cd external/yt_experiments
   uvx cibuildwheel --platform pyodide
   cp wheelhouse/*.whl ../../../public/wheels/
 )

@@ -1,0 +1,10 @@
+{
+  "*.{js,ts,jsx,tsx,html,css}": ["prettier --write"],
+  "*.json": [
+    "prettier --write",
+    "node -e \"JSON.parse(require('fs').readFileSync(process.argv[1]))\" --"
+  ],
+  "*": [
+    "node -e \"const fs = require('fs'); const file = process.argv[1]; const content = fs.readFileSync(file, 'utf8'); if (content !== content.replace(/[\\t ]+$/gm, '')) { fs.writeFileSync(file, content.replace(/[\\t ]+$/gm, '')); console.log('Removed trailing whitespace from ' + file); }\" --"
+  ]
+}
