@@ -392,6 +392,8 @@ png_bytes`
       return;
     }
   } catch (err: any) {
-    post('error', { error: String(err && err.message ? err.message : err) });
+    // Replace newlines with html breaks for better display in browser
+    const errorMessage = String(err && err.message ? err.message : err).replace(/\n/g, '<br>');
+    post('error', { error: errorMessage });
   }
 };

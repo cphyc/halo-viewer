@@ -58,11 +58,12 @@ function useHaloCatalog(catalogUrl: string = 'demo-halos/halos_00100.ascii') {
   return useQuery<HaloCatalog>({
     queryKey: ['halo-catalog', catalogUrl],
     queryFn: ({ signal }) => getHalos(catalogUrl, signal),
-    staleTime: 300_000, // 5 minutes
+    staleTime: Infinity, // 5 minutes
   });
 }
 
-function useSpectrum(specPath: string | null) {
+function useSpectrum(halo_id: number) {
+  const specPath = spectrumPath(halo_id);
   return useQuery<SpectrumJSON>({
     enabled: !!specPath,
     queryKey: ['spectrum', specPath],
@@ -70,8 +71,8 @@ function useSpectrum(specPath: string | null) {
   });
 }
 
-function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
-  const specQ = useSpectrum(halo.spectrum ? halo.spectrum : spectrumPath(halo.id));
+function SpectrumCard({ halo }: { halo: HaloCatalogData }) {
+  const specQ = useSpectrum(halo.id);
 
   const data: SpecData | null = useMemo(() => {
     if (!specQ.data) return null;
@@ -97,63 +98,43 @@ function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
   return (
     <div className="card">
       <div className="card-title">Spectrum</div>
-      {specQ.isLoading && <div className="muted">Loading spectrum…</div>}
+      {specQ.isLoading && <div className="muted">Loading spectrum for halo {halo.id}…</div>}
       {specQ.error && <div className="error">Failed to load spectrum</div>}
       {data && <SpectrumChartjs data={data} />}
     </div>
   );
 }
 
-function HaloPanel({
-  halo,
-  environmentComponent,
-}: {
-  halo: HaloCatalogData;
-  environmentComponent: React.ReactNode;
-}) {
+function HaloPanel({ halo }: { halo: HaloCatalogData }) {
   return (
-    <div className="grid2">
-      <div className="card">
-        <div className="card-title">Environment</div>
-        {environmentComponent}
-      </div>
-      <div className="card">
-        <div className="card-title">Global Information</div>
-        <InfoRow label="Halo ID" value={halo.id} noLatex={true} />
+    <div className="card">
+      <div className="card-title">Global Information</div>
+      <InfoRow label="Halo ID" value={halo.id} noLatex={true} />
 
-        <InfoRow
-          labelLatex="M_{200b}"
-          value={halo.mass}
-          unit="M_\odot" // solar masses
-        />
+      <InfoRow
+        labelLatex="M_{200b}"
+        value={halo.mass}
+        unit="M_\odot" // solar masses
+      />
 
-        <InfoRow
-          labelLatex="R_{200b}"
-          value={halo.r200b * 1000} // Convert Mpc to kpc for display
-          unit="\mathrm{kpc}"
-        />
+      <InfoRow
+        labelLatex="R_{200b}"
+        value={halo.r200b * 1000} // Convert Mpc to kpc for display
+        unit="\mathrm{kpc}"
+      />
 
-        <InfoRow
-          labelLatex="R_c"
-          value={halo.rc * 1000} // Convert Mpc to kpc for display
-          unit="\mathrm{kpc}"
-        />
+      <InfoRow
+        labelLatex="R_c"
+        value={halo.rc * 1000} // Convert Mpc to kpc for display
+        unit="\mathrm{kpc}"
+      />
 
-        <InfoRow
-          label="Position"
-          value={`(${halo.x.toFixed(1)}, ${halo.y.toFixed(1)}, ${halo.z.toFixed(1)})`}
-          unit="\mathrm{Mpc}"
-          noLatex={true}
-        />
-      </div>
-
-      <div className="card">
-        <div className="card-title">Spectrum</div>
-        <div className="muted">
-          Spectrum data available in catalog mode: halo_{halo.id.toString().padStart(6, '0')}
-          _spectrum.json
-        </div>
-      </div>
+      <InfoRow
+        label="Position"
+        value={`(${halo.x.toFixed(1)}, ${halo.y.toFixed(1)}, ${halo.z.toFixed(1)})`}
+        unit="\mathrm{Mpc}"
+        noLatex={true}
+      />
     </div>
   );
 }
@@ -168,12 +149,6 @@ function Shell() {
       setCurrentId(manQ.data.halos[0]?.id ?? null);
     }
   }, [manQ.data, currentId]);
-
-  // Create a persistent environment component that reuses the Three.js canvas
-  const environmentComponent = useMemo(
-    () => <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />,
-    [currentId]
-  );
 
   return (
     <div className="container">
@@ -195,11 +170,18 @@ function Shell() {
 
       {!currentId && <div className="muted">No halo selected.</div>}
       {haloQ.error && <div className="error">Failed to load halo metadata.</div>}
-      {haloQ.data && <HaloPanel halo={haloQ.data} environmentComponent={environmentComponent} />}
-      <>
-        {/* <SpectrumCard halo={haloQ.data} /> */}
-        <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.id}_gas.bin`)} />
-      </>
+      {haloQ.data && (
+        <>
+          <div className="grid2">
+            <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
+            <HaloPanel halo={haloQ.data} />
+          </div>
+          <div className="grid2">
+            <SpectrumCard halo={haloQ.data} />
+            <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.data.id}_gas.bin`)} />
+          </div>
+        </>
+      )}
       <footer className="footer">
         <span className="muted">Megatron Data Viewer • Cadiou, Katz, Rey</span>
       </footer>

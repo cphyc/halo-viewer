@@ -8,7 +8,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-import { HaloGlobalInfo, Manifest, SpectrumJSON, HaloCatalog, HaloCatalogData } from './types';
+import { SpectrumJSON, HaloCatalog, HaloCatalogData } from './types';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -29,14 +29,13 @@ export async function fetchJSON<T>(path: string, signal?: AbortSignal): Promise<
   return res.json() as Promise<T>;
 }
 
-export function haloPath(id: string) {
-  return `demo-halos/halo_${id}.json`;
+export function haloPath(id: number) {
+  return resolve(`demo-halos/halo_${id}.json`);
 }
 
-export function spectrumPath(idOrPath: string) {
+export function spectrumPath(id: number) {
   // If a path is given, return as-is. If an ID is provided, map to default demo path.
-  if (/\.(json)$/i.test(idOrPath) || /\//.test(idOrPath)) return idOrPath;
-  return `demo-halos/halo_${idOrPath}_spectrum.json`;
+  return resolve(`demo-halos/halo_${id}_spectrum.json`);
 }
 
 export async function getHalo(id: string, signal?: AbortSignal): Promise<HaloCatalogData | null> {
@@ -83,7 +82,6 @@ export async function getHalos(
       const headerLine = lines.shift();
 
       const headers = headerLine ? headerLine.slice(1).trim().split(/\s+/) : [];
-      console.log('Parsed headers:', headers);
 
       for (const line of lines) {
         // Parse Hubble parameter from header comments
