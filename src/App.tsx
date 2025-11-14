@@ -30,7 +30,7 @@ function useManifest() {
       
       const manifestHalos = topHalos.map(halo => ({
         id: halo.id.toString().padStart(6, '0'), // Format as "000001", "000002", etc.
-        name: `Halo ${halo.id} (${(halo.mass / 1e12).toFixed(1)}e12 M☉)`
+        name: `Halo ${halo.id}`
       }));
 
       return { halos: manifestHalos };
@@ -181,7 +181,10 @@ function Shell() {
       {!currentId && <div className="muted">No halo selected.</div>}
       {haloQ.error && <div className="error">Failed to load halo metadata.</div>}
       {haloQ.data && <HaloPanel halo={haloQ.data} environmentComponent={environmentComponent} />}
-
+      <>
+         {/* <SpectrumCard halo={haloQ.data} /> */}
+         <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.id}_gas.bin`)} />  
+      </>
       <footer className="footer">
         <span className="muted">Megatron Data Viewer • Cadiou, Katz, Rey</span>
       </footer>
