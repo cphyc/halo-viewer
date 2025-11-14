@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 /**
  * SpectrumPyodide
- * 
+ *
  * Displays a matplotlib-rendered spectrum generated inside a Pyodide Web Worker.
  * The worker fetches the spectrum JSON, runs Python code to produce a PNG,
  * and returns the PNG as a data URL to display in React.
@@ -60,8 +60,8 @@ export default function SpectrumPyodide({
           {status === 'loading'
             ? 'Loading Pyodide & plotting…'
             : status === 'error'
-            ? `Error: ${error}`
-            : 'Idle'}
+              ? `Error: ${error}`
+              : 'Idle'}
         </div>
       )}
       {img && (

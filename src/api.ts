@@ -1,11 +1,11 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_DATA_BASE_URL?: string
+  readonly VITE_DATA_BASE_URL?: string;
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
+  readonly env: ImportMetaEnv;
 }
 
 import { HaloGlobalInfo, Manifest, SpectrumJSON, HaloCatalog, HaloCatalogData } from './types';
@@ -47,7 +47,10 @@ export async function getSpectrum(specPath: string, signal?: AbortSignal): Promi
   return fetchJSON<SpectrumJSON>(specPath, signal);
 }
 
-export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.ascii', signal?: AbortSignal): Promise<HaloCatalog> {
+export async function getHalos(
+  catalogUrl: string = 'demo-halos/halos_00100.ascii',
+  signal?: AbortSignal
+): Promise<HaloCatalog> {
   // Return cached data if available
   if (haloCatalogCache) {
     return haloCatalogCache;
@@ -62,11 +65,13 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
   haloCatalogPromise = (async () => {
     try {
       const resolvedUrl = resolve(catalogUrl);
-      
+
       const response = await fetch(resolvedUrl, { signal });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to load halo catalog: ${response.status} ${response.statusText} from ${resolvedUrl}`);
+        throw new Error(
+          `Failed to load halo catalog: ${response.status} ${response.statusText} from ${resolvedUrl}`
+        );
       }
 
       const text = await response.text();
@@ -78,7 +83,7 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
       const headerLine = lines.shift();
 
       const headers = headerLine ? headerLine.slice(1).trim().split(/\s+/) : [];
-      console.log("Parsed headers:", headers);
+      console.log('Parsed headers:', headers);
 
       for (const line of lines) {
         // Parse Hubble parameter from header comments
@@ -88,16 +93,15 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
             h0 = parseFloat(match[1]);
           }
         }
-        
+
         // Skip comments and empty lines
         if (line.startsWith('#') || line.trim() === '') continue;
 
         const columns = line.trim().split(/\s+/);
         if (columns.length !== headers.length) {
-          console.warn("Skipping line with unexpected number of columns:", line);
+          console.warn('Skipping line with unexpected number of columns:', line);
           continue;
         }
-        
 
         const id = parseInt(columns[headers.indexOf('id')]);
         const mass = parseFloat(columns[headers.indexOf('m200b')]) / h0;
@@ -108,7 +112,15 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
         const r200b = parseFloat(columns[headers.indexOf('r200b')]) / 1000 / h0;
 
         // Skip invalid data
-        if (isNaN(id) || isNaN(mass) || isNaN(x) || isNaN(y) || isNaN(z) || isNaN(rc) || isNaN(r200b)) {
+        if (
+          isNaN(id) ||
+          isNaN(mass) ||
+          isNaN(x) ||
+          isNaN(y) ||
+          isNaN(z) ||
+          isNaN(rc) ||
+          isNaN(r200b)
+        ) {
           continue;
         }
 
@@ -120,10 +132,10 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
       }
 
       // Calculate statistics
-      const masses = haloData.map(h => h.mass);
-      const xs = haloData.map(h => h.x);
-      const ys = haloData.map(h => h.y);
-      const zs = haloData.map(h => h.z);
+      const masses = haloData.map((h) => h.mass);
+      const xs = haloData.map((h) => h.x);
+      const ys = haloData.map((h) => h.y);
+      const zs = haloData.map((h) => h.z);
 
       const catalog: HaloCatalog = {
         halos: haloData,
@@ -135,8 +147,8 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
             x: [Math.min(...xs), Math.max(...xs)],
             y: [Math.min(...ys), Math.max(...ys)],
             z: [Math.min(...zs), Math.max(...zs)],
-          }
-        }
+          },
+        },
       };
 
       // Cache the successful result
@@ -153,8 +165,11 @@ export async function getHalos(catalogUrl: string = 'demo-halos/halos_00100.asci
   return haloCatalogPromise;
 }
 
-export async function getHaloFromCatalog(haloId: number, signal?: AbortSignal): Promise<HaloCatalogData | null> {
-  console.log("Fetching halo from catalog:", haloId);
+export async function getHaloFromCatalog(
+  haloId: number,
+  signal?: AbortSignal
+): Promise<HaloCatalogData | null> {
+  console.log('Fetching halo from catalog:', haloId);
   const catalog = await getHalos('demo-halos/halos_00100.ascii', signal);
-  return catalog.halos.find(h => h.id === haloId) || null;
+  return catalog.halos.find((h) => h.id === haloId) || null;
 }

@@ -90,8 +90,11 @@ fig.savefig(buf, format='png')
 plt.close(fig)
 png_bytes = buf.getvalue()
 `;
-      const png = await pyodide.runPythonAsync(py + `
-png_bytes`);
+      const png = await pyodide.runPythonAsync(
+        py +
+          `
+png_bytes`
+      );
       const u8 = png.toJs() as Uint8Array;
       const dataUrl = 'data:image/png;base64,' + toBase64(u8);
       post('image', { dataUrl });
@@ -112,7 +115,7 @@ png_bytes`);
 
       const fullUrl = new URL(cutoutUrl, self.location.href).href;
       post('status', { status: `fetching cutout from ${fullUrl}` });
-     
+
       // Skeleton code: converts JS Uint8Array → Python bytes for user code
       const loadCode = `
 import numpy as np
@@ -347,11 +350,11 @@ ad = ds.all_data().exclude_nan(("gas", "density"))
       console.log('Available fields:', field_names);
       post('set-fields', { fields: field_names });
       post('loaded', {});
-   }
+    }
 
-   if (cmd == 'plotCutout') {
-     const { field, axis, width } = e.data;
-     const plotCode = `
+    if (cmd == 'plotCutout') {
+      const { field, axis, width } = e.data;
+      const plotCode = `
 field_js = "${field}"
 axis = "${axis}"
 width = ${width} * unyt.kpc
@@ -374,10 +377,13 @@ with open("tmp.png", "rb") as f:
 `;
 
       post('status', { status: 'plotting…' });
-      const png = await pyodide.runPythonAsync(plotCode + `
-png_bytes`);
+      const png = await pyodide.runPythonAsync(
+        plotCode +
+          `
+png_bytes`
+      );
 
-      await pyodide.runPythonAsync("print(p)");
+      await pyodide.runPythonAsync('print(p)');
       const u8 = png.toJs() as Uint8Array;
       const dataUrl = 'data:image/png;base64,' + toBase64(u8);
       post('image', { dataUrl });

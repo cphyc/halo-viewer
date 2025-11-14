@@ -34,25 +34,17 @@ function asTexOrText(s: string) {
   return /\\[a-zA-Z]+/.test(s) ? s : `\\text{${s}}`;
 }
 
-export default function InfoRow({
-  label,
-  value,
-  unit,
-  labelLatex,
-  valueLatex,
-  noLatex,
-}: Props) {
+export default function InfoRow({ label, value, unit, labelLatex, valueLatex, noLatex }: Props) {
   const labelExpr = labelLatex ?? asTexOrText(String(label));
 
   let valueExpr: string;
   if (noLatex) {
     valueExpr = String(value);
   } else {
-
     if (valueLatex) {
       valueExpr = valueLatex;
     } else {
-      let vStr = ""
+      let vStr = '';
       if (typeof value === 'number') {
         // Split into mantissa and exponent for better rendering
         const exp = Math.floor(Math.log10(Math.abs(value)));
@@ -65,11 +57,7 @@ export default function InfoRow({
       } else {
         vStr = String(value ?? '');
       }
-      const unitExpr = unit
-        ? /\\[a-zA-Z]+/.test(unit)
-          ? unit
-          : `\\mathrm{${unit}}`
-        : '';
+      const unitExpr = unit ? (/\\[a-zA-Z]+/.test(unit) ? unit : `\\mathrm{${unit}}`) : '';
       valueExpr = unitExpr ? `${vStr}\\,${unitExpr}` : vStr;
     }
   }

@@ -73,12 +73,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     sceneRef.current = scene;
 
     // Camera setup
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      dimensions.width / dimensions.height,
-      0.01,
-      10
-    );
+    const camera = new THREE.PerspectiveCamera(75, dimensions.width / dimensions.height, 0.01, 10);
     camera.position.set(2, 2, 2);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
@@ -92,43 +87,52 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     // Create instanced plane geometry for halos
     const planeGeometry = new THREE.PlaneGeometry(1, 1); // Unit plane, will be scaled per instance
     const instancedGeometry = new THREE.InstancedBufferGeometry();
-    
+
     // Copy base geometry attributes
     instancedGeometry.index = planeGeometry.index;
     instancedGeometry.attributes.position = planeGeometry.attributes.position;
     instancedGeometry.attributes.uv = planeGeometry.attributes.uv;
-    
+
     // Create instance attributes for each halo
     const instancePositions = new Float32Array(x.length * 3);
     const instanceScales = new Float32Array(x.length * 3); // x, y, z scale
     const instanceCoreSize = new Float32Array(x.length);
-    
+
     for (let i = 0; i < x.length; i++) {
       // Position each plane at halo location
       instancePositions[i * 3] = x[i];
       instancePositions[i * 3 + 1] = y[i];
       instancePositions[i * 3 + 2] = z[i];
-      
+
       // Scale plane to halo radius (diameter = 2 * radius)
-      const scale = size[i] * 2; 
-      instanceScales[i * 3] = scale;     // x scale
-      instanceScales[i * 3 + 1] = scale; // y scale  
-      instanceScales[i * 3 + 2] = 1;     // z scale (keep thin)
-      
+      const scale = size[i] * 2;
+      instanceScales[i * 3] = scale; // x scale
+      instanceScales[i * 3 + 1] = scale; // y scale
+      instanceScales[i * 3 + 2] = 1; // z scale (keep thin)
+
       instanceCoreSize[i] = core_size[i];
     }
-    
+
     // Add instance attributes
-    instancedGeometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(instancePositions, 3));
-    instancedGeometry.setAttribute('instanceScale', new THREE.InstancedBufferAttribute(instanceScales, 3));
-    instancedGeometry.setAttribute('instanceCoreSize', new THREE.InstancedBufferAttribute(instanceCoreSize, 1));
+    instancedGeometry.setAttribute(
+      'instancePosition',
+      new THREE.InstancedBufferAttribute(instancePositions, 3)
+    );
+    instancedGeometry.setAttribute(
+      'instanceScale',
+      new THREE.InstancedBufferAttribute(instanceScales, 3)
+    );
+    instancedGeometry.setAttribute(
+      'instanceCoreSize',
+      new THREE.InstancedBufferAttribute(instanceCoreSize, 1)
+    );
 
     // Custom shader material for instanced plane rendering
     const vertexShader = `
       attribute vec3 instancePosition;
       attribute vec3 instanceScale;
       attribute float instanceCoreSize;
-      
+
       varying float vSize;
       varying float vCoreSize;
       varying vec2 vUv;
@@ -137,20 +141,20 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
         vUv = uv;
         vSize = instanceScale.x * 0.5; // Convert from diameter to radius
         vCoreSize = instanceCoreSize;
-        
+
         // Billboard effect - make plane always face camera
         // Extract camera right and up vectors from modelViewMatrix
         vec3 cameraRight = vec3(modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0]);
         vec3 cameraUp = vec3(modelViewMatrix[0][1], modelViewMatrix[1][1], modelViewMatrix[2][1]);
-        
+
         // Scale the billboard vectors by the instance scale
         cameraRight *= instanceScale.x;
         cameraUp *= instanceScale.y;
-        
+
         // Create billboard position
         // position.x and position.y are the local plane coordinates (-0.5 to 0.5)
         vec3 worldPosition = instancePosition + (position.x * cameraRight) + (position.y * cameraUp);
-        
+
         gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
       }
     `;
@@ -165,14 +169,14 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
         // Convert UV coordinates (0-1) to centered coordinates (-0.5 to 0.5)
         vec2 center = vUv - 0.5;
         float dist = length(center);
-        
+
         // dist goes from 0 (center) to ~0.707 (corners)
         // We want to clip at 0.5 to make a circle
         if (dist > 0.5) discard;
-        
+
         // Map distance to physical radius (0.5 corresponds to vSize)
         float physicalRadius = dist * 2.0 * vSize;
-        
+
         float alpha;
         if (physicalRadius <= vCoreSize) {
           alpha = 1.0;
@@ -181,12 +185,12 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
           float falloff = (vSize - physicalRadius) / (vSize - vCoreSize);
           alpha = clamp(falloff, 0.0, 1.0);
         }
-        
+
         // White edge at boundary
         bool isEdge = dist > 0.48;
         vec3 finalColor = isEdge ? vec3(1.0) : color;
         float finalAlpha = isEdge ? 0.8 : alpha;
-        
+
         gl_FragColor = vec4(finalColor, finalAlpha);
       }
     `;
@@ -196,7 +200,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
       vertexShader,
       fragmentShader,
       uniforms: {
-        color: { value: new THREE.Color(pointColor) }
+        color: { value: new THREE.Color(pointColor) },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -224,8 +228,8 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     controls.enableDamping = true; // Smooth camera movements
     controls.dampingFactor = 0.1;
     controls.screenSpacePanning = false;
-    controls.minDistance = 0.01;  // Mpc
-    controls.maxDistance = 50;    // Mpc
+    controls.minDistance = 0.01; // Mpc
+    controls.maxDistance = 50; // Mpc
     controls.maxPolarAngle = Math.PI; // Allow full rotation
 
     // Store controls reference for camera animation
@@ -269,7 +273,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     }
 
     // Find the index of the selected halo
-    const haloIndex = ids.findIndex(id => id === selectedHaloId);
+    const haloIndex = ids.findIndex((id) => id === selectedHaloId);
     if (haloIndex === -1) {
       return;
     }
@@ -281,7 +285,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
     const haloSize = size[haloIndex];
 
     // Calculate camera position (offset from halo center)
-    const distance = Math.min(haloSize * 3, 0.100);
+    const distance = Math.min(haloSize * 3, 0.1);
     const currentPosition = cameraRef.current.position.clone();
     const targetPosition = new THREE.Vector3(targetX, targetY, targetZ);
 
@@ -303,16 +307,21 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
       x: newCameraPosition.x,
       y: newCameraPosition.y,
       z: newCameraPosition.z,
-      ease: "power2.inOut"
-    })
-    .to(controls.target, {
-      duration: 2,
-      x: targetPosition.x,
-      y: targetPosition.y,
-      z: targetPosition.z,
-      ease: "power2.inOut",
-      onUpdate: () => { controls.update(); }
-    }, 0); // Start at the same time (0 offset)
+      ease: 'power2.inOut',
+    }).to(
+      controls.target,
+      {
+        duration: 2,
+        x: targetPosition.x,
+        y: targetPosition.y,
+        z: targetPosition.z,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          controls.update();
+        },
+      },
+      0
+    ); // Start at the same time (0 offset)
 
     // Return cleanup function to kill animation if component unmounts or selectedHaloId changes again
     return () => {
@@ -327,7 +336,7 @@ const PointCloud3D: React.FC<PointCloud3DProps> = ({
         width: '100%',
         height: '100%',
         minHeight: '400px',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     />
   );

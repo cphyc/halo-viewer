@@ -5,7 +5,9 @@ interface HaloCatalogExampleProps {
   selectedHaloId?: number;
 }
 
-const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({ selectedHaloId: externalSelectedHaloId }) => {
+const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({
+  selectedHaloId: externalSelectedHaloId,
+}) => {
   const [massThreshold, setMassThreshold] = useState(1e6); // 1e6 solar masses
   const [pointColor, setPointColor] = useState('#4a90e2');
   const [selectedHaloId, setSelectedHaloId] = useState<number | undefined>(undefined);
@@ -19,14 +21,16 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({ selectedHaloId:
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        marginBottom: '10px', 
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        fontSize: '12px'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          marginBottom: '10px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          fontSize: '12px',
+        }}
+      >
         <div>
           <label htmlFor="massThreshold" style={{ marginRight: '4px' }}>
             Mass:
@@ -41,9 +45,7 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({ selectedHaloId:
             onChange={(e) => setMassThreshold(Math.pow(10, parseFloat(e.target.value)))}
             style={{ marginRight: '4px', width: '60px' }}
           />
-          <span style={{ fontSize: '10px', color: '#666' }}>
-            {massThreshold.toExponential(1)}
-          </span>
+          <span style={{ fontSize: '10px', color: '#666' }}>{massThreshold.toExponential(1)}</span>
         </div>
 
         <div>
@@ -74,12 +76,12 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({ selectedHaloId:
               setSelectedHaloId(value ? parseInt(value) : undefined);
             }}
           />
-          <button 
+          <button
             onClick={() => setSelectedHaloId(undefined)}
             style={{
               padding: '2px 6px',
               fontSize: '10px',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
             ×
@@ -87,13 +89,15 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({ selectedHaloId:
         </div>
       </div>
 
-      <div style={{ 
-        flexGrow: 1,
-        minHeight: '400px',
-        border: '1px solid #ddd', 
-        borderRadius: '4px',
-        position: 'relative'
-      }}>
+      <div
+        style={{
+          flexGrow: 1,
+          minHeight: '400px',
+          border: '1px solid #ddd',
+          borderRadius: '4px',
+          position: 'relative',
+        }}
+      >
         <HaloCatalogPointCloud
           catalogUrl="demo-halos/halos_00100.ascii"
           massThreshold={massThreshold}

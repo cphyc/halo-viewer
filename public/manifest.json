@@ -1,0 +1,16 @@
+{
+  "halos": [
+    {
+      "id": "000001",
+      "name": "Demo Halo 1"
+    },
+    {
+      "id": "000002",
+      "name": "Demo Halo 2"
+    },
+    {
+      "id": "000003",
+      "name": "Demo Halo 3"
+    }
+  ]
+}

@@ -16,8 +16,8 @@ export default function CutoutRunner({
   pyCode = '',
 }: {
   cutoutUrl: string;
-  wheelUrls?: string[];  // relative or absolute URLs to your .whl files
-  pyCode?: string;    // your Python code (blank by default)
+  wheelUrls?: string[]; // relative or absolute URLs to your .whl files
+  pyCode?: string; // your Python code (blank by default)
 }) {
   const workerRef = useRef<Worker | null>(null);
   const [status, setStatus] = useState<string>('idle');
@@ -35,16 +35,21 @@ export default function CutoutRunner({
     w.onmessage = (e: MessageEvent) => {
       const { type, ...rest } = e.data || {};
       if (type === 'status') setStatus(rest.status);
-      if (type === 'error') { setStatus('error'); setError(rest.error); }
+      if (type === 'error') {
+        setStatus('error');
+        setError(rest.error);
+      }
       if (type === 'loaded') setLoaded(true);
       if (type === 'plotting-done') setStatus('plotting-done');
       if (type === 'image') setImg(rest.dataUrl);
       if (type === 'set-fields') {
         setFields(rest.fields);
-        setField("gas__density");
+        setField('gas__density');
       }
     };
-    return () => { w.terminate(); };
+    return () => {
+      w.terminate();
+    };
   }, []);
 
   function loadCutout() {
@@ -58,35 +63,37 @@ export default function CutoutRunner({
     setError(null);
     workerRef.current?.postMessage({
       cmd: 'plotCutout',
-      'field': field,
-      'axis': axis,
-      'width': width
+      field: field,
+      axis: axis,
+      width: width,
     });
   }
 
   return (
     <div className="card">
       <div className="card-title">Cutout</div>
-      <div className="muted" style={{ marginBottom: 8 }}>Status: {status}</div>
+      <div className="muted" style={{ marginBottom: 8 }}>
+        Status: {status}
+      </div>
       {error && <div className="error">Error: {error}</div>}
-      <button onClick={loadCutout} >
-        Load cutout
-      </button>
+      <button onClick={loadCutout}>Load cutout</button>
       {loaded && (
         <div>
-          <button onClick={plotCutout} >
-            Plot cutout
-          </button>
+          <button onClick={plotCutout}>Plot cutout</button>
           <div style={{ marginBottom: 8 }}>
-            <select value={field} onChange={e => setField(e.target.value)}>
-              <option value="" disabled>Select field...</option>
+            <select value={field} onChange={(e) => setField(e.target.value)}>
+              <option value="" disabled>
+                Select field...
+              </option>
               {field_list?.map((field: string) => (
-                <option key={field} value={field}>{field.replace("__", ", ")}</option>
+                <option key={field} value={field}>
+                  {field.replace('__', ', ')}
+                </option>
               ))}
             </select>
           </div>
           <div style={{ marginBottom: 8 }}>
-            <select value={axis} onChange={e => setAxis(e.target.value)}>
+            <select value={axis} onChange={(e) => setAxis(e.target.value)}>
               <option value="">Select axis...</option>
               <option value="x">x</option>
               <option value="y">y</option>
@@ -103,10 +110,11 @@ export default function CutoutRunner({
               placeholder="Enter width in kpc"
               style={{ marginLeft: 4 }}
               value={width}
-              onChange={e => setWidth(Number(e.target.value))}
+              onChange={(e) => setWidth(Number(e.target.value))}
             />
           </div>
-        </div>)}
+        </div>
+      )}
       {img && (
         <img
           src={img}

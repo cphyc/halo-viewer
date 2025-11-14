@@ -8,9 +8,18 @@
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    'Noto Sans',
+    'Apple Color Emoji',
+    'Segoe UI Emoji';
 }
-
 
 .container {
   max-width: 1200px;
@@ -39,7 +48,6 @@ body {
   color: #b00020;
 }
 
-
 .grid2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -52,7 +60,6 @@ body {
   }
 }
 
-
 .card {
   border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
   border-radius: 12px;
@@ -63,7 +70,6 @@ body {
   font-weight: 600;
   margin-bottom: 8px;
 }
-
 
 select {
   padding: 6px 8px;

@@ -83,7 +83,7 @@ You can test the application locally using
 npm run dev
 ```
 
-Alternatively, after you've built the application (see previous section), you can serve the local folder, e.g. with 
+Alternatively, after you've built the application (see previous section), you can serve the local folder, e.g. with
 ```bash
 python -m http.server
 ```

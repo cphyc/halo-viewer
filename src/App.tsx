@@ -13,24 +13,24 @@ const qc = new QueryClient();
 function useManifest() {
   // Use the same catalog query that HaloCatalogPointCloud uses
   const catalogQuery = useHaloCatalog();
-  
+
   return useQuery({
     queryKey: ['manifest', 'derived'],
     queryFn: async () => {
       if (!catalogQuery.data) {
         throw new Error('Catalog not loaded');
       }
-      
+
       // Convert catalog halos to manifest format
       // Sort by mass (descending) to show most massive halos first
       const sortedHalos = [...catalogQuery.data.halos].sort((a, b) => b.mass - a.mass);
-      
+
       // Limit to top 50 halos to keep dropdown manageable and avoid UI issues
       const topHalos = sortedHalos.slice(0, 50);
-      
-      const manifestHalos = topHalos.map(halo => ({
+
+      const manifestHalos = topHalos.map((halo) => ({
         id: halo.id.toString().padStart(6, '0'), // Format as "000001", "000002", etc.
-        name: `Halo ${halo.id}`
+        name: `Halo ${halo.id}`,
       }));
 
       return { halos: manifestHalos };
@@ -40,8 +40,8 @@ function useManifest() {
     placeholderData: {
       halos: [
         { id: '000001', name: 'Loading...' },
-        { id: '000002', name: 'Please wait...' }
-      ]
+        { id: '000002', name: 'Please wait...' },
+      ],
     },
   });
 }
@@ -62,7 +62,6 @@ function useHaloCatalog(catalogUrl: string = 'demo-halos/halos_00100.ascii') {
   });
 }
 
-
 function useSpectrum(specPath: string | null) {
   return useQuery<SpectrumJSON>({
     enabled: !!specPath,
@@ -77,13 +76,19 @@ function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
   const data: SpecData | null = useMemo(() => {
     if (!specQ.data) return null;
     if ('lambda' in specQ.data && 'flux' in specQ.data) {
-      return { lambda: Float64Array.from(specQ.data.lambda), flux: Float64Array.from(specQ.data.flux) };
+      return {
+        lambda: Float64Array.from(specQ.data.lambda),
+        flux: Float64Array.from(specQ.data.flux),
+      };
     }
     if ('pairs' in specQ.data) {
       const n = specQ.data.pairs.length;
       const l = new Float64Array(n);
       const f = new Float64Array(n);
-      for (let i = 0; i < n; i++) { l[i] = specQ.data.pairs[i][0]; f[i] = specQ.data.pairs[i][1]; }
+      for (let i = 0; i < n; i++) {
+        l[i] = specQ.data.pairs[i][0];
+        f[i] = specQ.data.pairs[i][1];
+      }
       return { lambda: l, flux: f };
     }
     return null;
@@ -99,7 +104,13 @@ function SpectrumCard({ halo }: { halo: HaloGlobalInfo }) {
   );
 }
 
-function HaloPanel({ halo, environmentComponent }: { halo: HaloCatalogData; environmentComponent: React.ReactNode }) {
+function HaloPanel({
+  halo,
+  environmentComponent,
+}: {
+  halo: HaloCatalogData;
+  environmentComponent: React.ReactNode;
+}) {
   return (
     <div className="grid2">
       <div className="card">
@@ -113,18 +124,18 @@ function HaloPanel({ halo, environmentComponent }: { halo: HaloCatalogData; envi
         <InfoRow
           labelLatex="M_{200b}"
           value={halo.mass}
-          unit="M_\odot"          // solar masses
+          unit="M_\odot" // solar masses
         />
 
         <InfoRow
           labelLatex="R_{200b}"
-          value={halo.r200b * 1000}  // Convert Mpc to kpc for display
+          value={halo.r200b * 1000} // Convert Mpc to kpc for display
           unit="\mathrm{kpc}"
         />
 
         <InfoRow
           labelLatex="R_c"
-          value={halo.rc * 1000}     // Convert Mpc to kpc for display  
+          value={halo.rc * 1000} // Convert Mpc to kpc for display
           unit="\mathrm{kpc}"
         />
 
@@ -135,10 +146,13 @@ function HaloPanel({ halo, environmentComponent }: { halo: HaloCatalogData; envi
           noLatex={true}
         />
       </div>
-      
+
       <div className="card">
         <div className="card-title">Spectrum</div>
-        <div className="muted">Spectrum data available in catalog mode: halo_{halo.id.toString().padStart(6, '0')}_spectrum.json</div>
+        <div className="muted">
+          Spectrum data available in catalog mode: halo_{halo.id.toString().padStart(6, '0')}
+          _spectrum.json
+        </div>
       </div>
     </div>
   );
@@ -156,9 +170,10 @@ function Shell() {
   }, [manQ.data, currentId]);
 
   // Create a persistent environment component that reuses the Three.js canvas
-  const environmentComponent = useMemo(() => (
-    <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
-  ), [currentId]);
+  const environmentComponent = useMemo(
+    () => <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />,
+    [currentId]
+  );
 
   return (
     <div className="container">
@@ -182,8 +197,8 @@ function Shell() {
       {haloQ.error && <div className="error">Failed to load halo metadata.</div>}
       {haloQ.data && <HaloPanel halo={haloQ.data} environmentComponent={environmentComponent} />}
       <>
-         {/* <SpectrumCard halo={haloQ.data} /> */}
-         <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.id}_gas.bin`)} />  
+        {/* <SpectrumCard halo={haloQ.data} /> */}
+        <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.id}_gas.bin`)} />
       </>
       <footer className="footer">
         <span className="muted">Megatron Data Viewer • Cadiou, Katz, Rey</span>

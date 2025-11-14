@@ -31,13 +31,13 @@ Chart.register(
 
 type Props = {
   data: SpecData;
-  height?: number;      // CSS height of the container
-  xLabel?: string;      // default: 'λ'
-  xUnit?: string;       // default: 'Å'
-  yLabel?: string;      // default: 'fλ'
-  yUnit?: string;       // default: 'arbitrary units'
-  color?: string;       // CSS color for the line
-  maxPoints?: number;   // decimation target
+  height?: number; // CSS height of the container
+  xLabel?: string; // default: 'λ'
+  xUnit?: string; // default: 'Å'
+  yLabel?: string; // default: 'fλ'
+  yUnit?: string; // default: 'arbitrary units'
+  color?: string; // CSS color for the line
+  maxPoints?: number; // decimation target
 };
 
 export default function SpectrumChartjs({
