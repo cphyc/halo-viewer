@@ -99,7 +99,7 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({
         }}
       >
         <HaloCatalogPointCloud
-          catalogUrl="demo-halos/halos_00100.ascii"
+          catalogUrl="demo-halos/cutouts/halos_00100.ascii"
           massThreshold={massThreshold}
           pointColor={pointColor}
           selectedHaloId={selectedHaloId}

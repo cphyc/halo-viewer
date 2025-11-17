@@ -29,25 +29,55 @@ export async function fetchJSON<T>(path: string, signal?: AbortSignal): Promise<
   return res.json() as Promise<T>;
 }
 
-export function haloPath(id: number) {
-  return resolve(`demo-halos/halo_${id}.json`);
-}
-
 export function spectrumPath(id: number) {
   // If a path is given, return as-is. If an ID is provided, map to default demo path.
-  return resolve(`demo-halos/halo_${id}_spectrum.json`);
+  const bucket_id = Math.floor(id / 1000);
+  return `demo-halos/spectra/output_00100/halos_${bucket_id}.json.gz`;
 }
 
 export async function getHalo(id: string, signal?: AbortSignal): Promise<HaloCatalogData | null> {
   return getHaloFromCatalog(parseInt(id), signal);
 }
 
-export async function getSpectrum(specPath: string, signal?: AbortSignal): Promise<SpectrumJSON> {
-  return fetchJSON<SpectrumJSON>(specPath, signal);
+export async function getSpectrum(
+  specPath: string,
+  haloId: number,
+  signal?: AbortSignal
+): Promise<SpectrumJSON> {
+  // Check if it's a gz-compressed file
+  const response = await fetch(resolve(specPath), { signal });
+  if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${specPath}`);
+
+  const jsonData = (await response.json()) as SpectrumJSON;
+
+  // Extract data for the specific halo ID
+  const haloData = jsonData.data[haloId.toString()];
+  if (!haloData) {
+    throw new Error(`Halo ${haloId} not found in spectrum file`);
+  }
+
+  // Convert arrays to Float64Arrays
+  const convertedHaloData: any = {};
+  for (const [key, value] of Object.entries(haloData)) {
+    if (Array.isArray(value)) {
+      convertedHaloData[key] = Float64Array.from(value);
+    } else {
+      convertedHaloData[key] = value;
+    }
+  }
+
+  // Return in the format with wavelength and data for this specific halo
+  return {
+    output: jsonData.output,
+    wavelength: Float64Array.from(jsonData.wavelength),
+    data: {
+      [haloId.toString()]: convertedHaloData,
+    },
+  };
 }
 
 export async function getHalos(
-  catalogUrl: string = 'demo-halos/halos_00100.ascii',
+  catalogUrl: string = 'demo-halos/cutouts/halos_00100.ascii',
   signal?: AbortSignal
 ): Promise<HaloCatalog> {
   // Return cached data if available
@@ -168,6 +198,6 @@ export async function getHaloFromCatalog(
   signal?: AbortSignal
 ): Promise<HaloCatalogData | null> {
   console.log('Fetching halo from catalog:', haloId);
-  const catalog = await getHalos('demo-halos/halos_00100.ascii', signal);
+  const catalog = await getHalos('demo-halos/cutouts/halos_00100.ascii', signal);
   return catalog.halos.find((h) => h.id === haloId) || null;
 }

@@ -37,12 +37,6 @@ function useManifest() {
     },
     enabled: !!catalogQuery.data,
     staleTime: Infinity, // Never goes stale since it's derived from catalog data
-    placeholderData: {
-      halos: [
-        { id: '000001', name: 'Loading...' },
-        { id: '000002', name: 'Please wait...' },
-      ],
-    },
   });
 }
 
@@ -54,7 +48,7 @@ function useHalo(id: string | null) {
   });
 }
 
-function useHaloCatalog(catalogUrl: string = 'demo-halos/halos_00100.ascii') {
+function useHaloCatalog(catalogUrl: string = 'demo-halos/cutouts/halos_00100.ascii') {
   return useQuery<HaloCatalog>({
     queryKey: ['halo-catalog', catalogUrl],
     queryFn: ({ signal }) => getHalos(catalogUrl, signal),
@@ -66,8 +60,8 @@ function useSpectrum(halo_id: number) {
   const specPath = spectrumPath(halo_id);
   return useQuery<SpectrumJSON>({
     enabled: !!specPath,
-    queryKey: ['spectrum', specPath],
-    queryFn: ({ signal }) => getSpectrum(specPath!, signal),
+    queryKey: ['spectrum', specPath, halo_id],
+    queryFn: ({ signal }) => getSpectrum(specPath!, halo_id, signal),
   });
 }
 
@@ -76,24 +70,20 @@ function SpectrumCard({ halo }: { halo: HaloCatalogData }) {
 
   const data: SpecData | null = useMemo(() => {
     if (!specQ.data) return null;
-    if ('lambda' in specQ.data && 'flux' in specQ.data) {
-      return {
-        lambda: Float64Array.from(specQ.data.lambda),
-        flux: Float64Array.from(specQ.data.flux),
-      };
-    }
-    if ('pairs' in specQ.data) {
-      const n = specQ.data.pairs.length;
-      const l = new Float64Array(n);
-      const f = new Float64Array(n);
-      for (let i = 0; i < n; i++) {
-        l[i] = specQ.data.pairs[i][0];
-        f[i] = specQ.data.pairs[i][1];
+
+    // Handle new gz-compressed multi-halo format
+    if ('wavelength' in specQ.data && 'data' in specQ.data) {
+      const haloData = specQ.data.data[halo.id.toString()];
+      if (haloData && haloData.total) {
+        return {
+          lambda: specQ.data.wavelength,
+          flux: haloData.total,
+        };
       }
-      return { lambda: l, flux: f };
+      return null;
     }
     return null;
-  }, [specQ.data]);
+  }, [specQ.data, halo.id]);
 
   return (
     <div className="card">
@@ -146,6 +136,7 @@ function Shell() {
 
   useEffect(() => {
     if (manQ.data && !currentId) {
+      console.log(`Setting to ${manQ.data.halos[0]?.id}.`);
       setCurrentId(manQ.data.halos[0]?.id ?? null);
     }
   }, [manQ.data, currentId]);
@@ -178,7 +169,11 @@ function Shell() {
           </div>
           <div className="grid2">
             <SpectrumCard halo={haloQ.data} />
-            <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.data.id}_gas.bin`)} />
+            <CutoutRunner
+              cutoutUrl={resolveURL(
+                `demo-halos/cutouts/output_00100/halo_${haloQ.data.id}_gas.bin`
+              )}
+            />
           </div>
         </>
       )}

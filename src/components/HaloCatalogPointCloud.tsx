@@ -13,7 +13,7 @@ interface HaloCatalogPointCloudProps {
 }
 
 const HaloCatalogPointCloud: React.FC<HaloCatalogPointCloudProps> = ({
-  catalogUrl = 'demo-halos/halos_00100.ascii',
+  catalogUrl = 'demo-halos/cutouts/halos_00100.ascii',
   pointColor = '#4a90e2',
   massThreshold = 0,
   selectedHaloId,

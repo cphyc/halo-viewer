@@ -30,9 +30,20 @@ export type HaloCatalog = {
   };
 };
 
-export type SpectrumJSON =
-  | { lambda: number[]; flux: number[] } // common format
-  | { pairs: [number, number][] }; // alternative format
+export type SpectrumJSON = {
+  // gz-compressed multi-halo format
+  output: string;
+  wavelength: Float64Array;
+  data: {
+    [haloId: string]: {
+      total?: Float64Array;
+      popIII?: Float64Array;
+      popII?: Float64Array;
+      nebc?: Float64Array;
+      two_phot_cool?: Float64Array;
+    };
+  };
+};
 
 export type Manifest = {
   halos: { id: string; name?: string }[];

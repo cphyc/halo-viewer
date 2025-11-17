@@ -71,6 +71,9 @@ def main():
 
             ibucket = halo_id_int // bucket_size
 
+            # Remove wavelengths from data to save space
+            del data["wvls"]
+
             new_data[ibucket][halo_id] = data
 
         for bucket, halo_data in new_data.items():
