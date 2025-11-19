@@ -4,3 +4,6 @@
 [submodule "src/pyodide/yt_experiments"]
 	path = external/yt_experiments
 	url = https://github.com/yt-project/yt_experiments
+[submodule "external/js-colormaps"]
+	path = external/js-colormaps
+	url = https://github.com/timothygebhard/js-colormaps
