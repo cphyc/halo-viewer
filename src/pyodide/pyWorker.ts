@@ -103,6 +103,10 @@ png_bytes`
 
     if (cmd === 'runCutout') {
       const { cutoutUrl, wheelUrls, pyCode = '' } = e.data;
+      const fullUrl = new URL(cutoutUrl, self.location.href).href;
+      post('status', { status: `starting downloading dataset from ${fullUrl}` });
+      const fetchPromise = fetch(fullUrl, { headers: { Accept: 'application/octet-stream' } });
+
       await ensurePyodide();
 
       // Optional: install the wheel if provided
@@ -113,22 +117,17 @@ png_bytes`
         }
       }
 
-      const fullUrl = new URL(cutoutUrl, self.location.href).href;
-      post('status', { status: `fetching cutout from ${fullUrl}` });
-
       // Skeleton code: converts JS Uint8Array → Python bytes for user code
-      const loadCode = `
+      const importsCode = `
 import numpy as np
 import yt
 from scipy.io import FortranFile
 from yt_experiments.octree.converter import OctTree
-import pooch
 from enum import Enum
 import unyt
 from pathlib import Path
 import io
 
-url = "${fullUrl}"
 
 class Scale(Enum):
     LINEAR = 0
@@ -244,13 +243,15 @@ header: list[tuple[str, Scale, str]] = [
 ]
 
 
-def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, verbose: bool = True):
+def load_cutout(name: str, file_desc, boxsize: float = 50, h0: float = 0.6727, verbose: bool = True):
     """Load a Megatron cutout file as a yt dataset.
 
     Parameters
     ----------
-    filename : str | Path | url
-        Path to the cutout file. If a URL, it will be downloaded using pooch.
+    name : str
+        Name of the dataset.
+    file_desc : file-like object
+        A file-like object (e.g., BytesIO) containing the cutout binary data.
     boxsize : boxsize in Mpccm/h
         The boxsize of the original simulation in comoving Mpc/h. Default is 50.
     h0 : float
@@ -258,13 +259,8 @@ def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, v
     verbose : bool
         Whether to show a progress bar when loading the data. Default is True.
     """
-    original_path = path = Path(filename)
-
-    if not path.exists():
-        path = Path(pooch.retrieve(str(filename), known_hash=None))
-
     data = {}
-    with FortranFile(path, "r") as ff:
+    with FortranFile(file_desc) as ff:
         for name, scale, _unit in header:
             # Read in the quantity
             raw_data = ff.read_reals("float64")
@@ -329,27 +325,71 @@ def load_cutout(filename: str | Path, boxsize: float = 50, h0: float = 0.6727, v
         data=data,
         bbox=np.array([left_edge, right_edge]).T,
         num_zones=1,
-        dataset_name=original_path.name,
+        dataset_name=name,
         parameters=params,
         length_unit=boxsize_physical,
     )
     ds.domain_center = ds.arr(center, "code_length")
 
     return ds
+`;
 
-fname = pooch.retrieve(url, known_hash=None)
+      // After wheels are installed, import necessary modules
+      post('status', { status: `importing code for loading dataset...` });
+      await pyodide.runPythonAsync(importsCode);
 
-ds = load_cutout(fname)
+      // Write directly to Pyodide FS
+      post('status', { status: `waiting for dataset download to finish...` });
+      const res = await fetchPromise;
+
+      if (!res.ok) throw new Error(`Fetch ${res.status}: ${fullUrl}`);
+
+      // Get the binary data as an ArrayBuffer
+      const arrayBuffer = await res.arrayBuffer();
+
+      // Write the cutout binary to Pyodide FS
+      if (pyodide.FS.analyzePath('/cutout.bin').exists) {
+        pyodide.FS.unlink('/cutout.bin'); // Remove if exists
+      }
+      pyodide.FS.writeFile('/cutout.bin', new Uint8Array(arrayBuffer));
+
+      // User code to run on the cutout
+      const loadDatasetCode = `
+yt.mylog.error("load_cutout")
+ds = load_cutout("Cutout", open("/cutout.bin", "rb"))
+
 ad = ds.all_data().exclude_nan(("gas", "density"))
 
 ["__".join(_) for _ in ds.derived_field_list]`;
-      post('status', { status: 'loading dataset…' });
-      const fields = await pyodide.runPythonAsync(loadCode);
+
+      post('status', { status: 'loading cutout data' });
+      const fields = await pyodide.runPythonAsync(loadDatasetCode);
       post('status', { status: 'ready' });
       const field_names = fields.toJs() as string[];
       console.log('Available fields:', field_names);
       post('set-fields', { fields: field_names });
       post('loaded', {});
+    }
+
+    if (cmd == 'plotQuadMesh') {
+      const { field, axis } = e.data;
+      const getQuadCode = `
+field_js = "${field}"
+field = tuple(field_js.split("__"))
+
+# Create quad mesh plot
+proj = ds.proj(field, "${axis}", data_source=ad)
+(proj["px"], proj["py"], proj["pdx"], proj["pdy"], proj[field])`;
+
+      post('status', { status: 'getting quad mesh…' });
+      const result = await pyodide.runPythonAsync(getQuadCode);
+      const [px, py, pdx, pdy, data] = result.toJs() as [
+        unyt.unyt_array,
+        unyt.unyt_array,
+        unyt.unyt_array,
+        unyt.unyt_array,
+        unyt.unyt_array,
+      ];
     }
 
     if (cmd == 'plotCutout') {
@@ -393,7 +433,7 @@ png_bytes`
     }
   } catch (err: any) {
     // Replace newlines with html breaks for better display in browser
-    const errorMessage = String(err && err.message ? err.message : err).replace(/\n/g, '<br>');
+    const errorMessage = String(err && err.message ? err.message : err);
     post('error', { error: errorMessage });
   }
 };

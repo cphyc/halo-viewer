@@ -9,8 +9,6 @@ export default function CutoutRunner({
     'https://files.pythonhosted.org/packages/e0/1f/f370c32eab50b45271c4929665caeb49e55ed6ae14706595f2b192825148/pyneb-1.1.28-py3-none-any.whl',
     `${BASE}/wheels/yt_experiments-0.3.0-cp312-cp312-pyodide_2024_0_wasm32.whl`,
     `${BASE}/wheels/yt_derived_fields-0.1.0-py3-none-any.whl`,
-    'lzma', // Required for pooch
-    'pooch',
     'scipy',
   ],
   pyCode = '',
@@ -75,7 +73,17 @@ export default function CutoutRunner({
       <div className="muted" style={{ marginBottom: 8 }}>
         Status: {status}
       </div>
-      {error && <div className="error">Error: {error}</div>}
+      {error && (
+        <div className="error">
+          Error:{' '}
+          {error.split('\n').map((line, i) => (
+            <span key={i}>
+              {line}
+              <br />
+            </span>
+          ))}
+        </div>
+      )}
       <button onClick={loadCutout}>Load cutout</button>
       {loaded && (
         <div>
