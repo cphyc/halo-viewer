@@ -7,7 +7,6 @@ import CutoutRunner from './components/CutoutRunner';
 import InfoRow from './components/InfoRow';
 import './styles.css';
 import HaloCatalogExample from './components/HaloCatalogExample';
-import QuadtreeViewer from './components/QuadtreeViewer';
 
 const qc = new QueryClient();
 
@@ -130,16 +129,6 @@ function HaloPanel({ halo }: { halo: HaloCatalogData }) {
   );
 }
 
-function Tmp() {
-  const px = new Float32Array([0, 0.5, -0.5]);
-  const py = new Float32Array([0, 0.5, -0.5]);
-  const pdx = new Float32Array([0.4, 0.2, 0.2]);
-  const pdy = new Float32Array([0.4, 0.2, 0.2]);
-  const value = new Float32Array([1.0, 2.5, 0.8]);
-
-  return <QuadtreeViewer px={px} py={py} pdx={pdx} pdy={pdy} value={value} colormap="viridis" />;
-}
-
 function Shell() {
   const manQ = useManifest();
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -188,6 +177,7 @@ function Shell() {
           </div>
         </>
       )}
+
       <footer className="footer">
         <span className="muted">Megatron Data Viewer • Cadiou, Katz, Rey</span>
       </footer>

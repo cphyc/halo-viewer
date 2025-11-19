@@ -372,24 +372,25 @@ ad = ds.all_data().exclude_nan(("gas", "density"))
     }
 
     if (cmd == 'plotQuadMesh') {
-      const { field, axis } = e.data;
+      const { field, axis, width } = e.data;
       const getQuadCode = `
 field_js = "${field}"
 field = tuple(field_js.split("__"))
 
 # Create quad mesh plot
 proj = ds.proj(field, "${axis}", data_source=ad)
-(proj["px"], proj["py"], proj["pdx"], proj["pdy"], proj[field])`;
+(proj["px"].value, proj["py"].value, proj["pdx"].value, proj["pdy"].value, proj[field].value)`;
 
       post('status', { status: 'getting quad mesh…' });
       const result = await pyodide.runPythonAsync(getQuadCode);
       const [px, py, pdx, pdy, data] = result.toJs() as [
-        unyt.unyt_array,
-        unyt.unyt_array,
-        unyt.unyt_array,
-        unyt.unyt_array,
-        unyt.unyt_array,
+        Float64Array,
+        Float64Array,
+        Float64Array,
+        Float64Array,
+        Float64Array,
       ];
+      post('quadtree-data', { px, py, pdx, pdy, value: data });
     }
 
     if (cmd == 'plotCutout') {

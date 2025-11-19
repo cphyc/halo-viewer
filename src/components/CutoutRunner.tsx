@@ -1,5 +1,8 @@
 // src/components/CutoutRunner.tsx
 import { useEffect, useRef, useState } from 'react';
+import QuadtreeViewer from './QuadtreeViewer';
+import { QuadData } from '../types';
+import { resolve } from '../api';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -27,10 +30,12 @@ export default function CutoutRunner({
   const [axis, setAxis] = useState<string>('x');
   const [width, setWidth] = useState<number>(20);
 
+  const [quadData, setQuadData] = useState<QuadData | null>(null);
+
   useEffect(() => {
     const w = new Worker(new URL('../pyodide/pyWorker.ts', import.meta.url), { type: 'classic' });
     workerRef.current = w;
-    w.onmessage = (e: MessageEvent) => {
+    w.onmessage = async (e: MessageEvent) => {
       const { type, ...rest } = e.data || {};
       if (type === 'status') setStatus(rest.status);
       if (type === 'error') {
@@ -44,13 +49,29 @@ export default function CutoutRunner({
         setFields(rest.fields);
         setField('gas__density');
       }
+      if (type === 'quadtree-data') {
+        console.log('Got quadtree data', Math.min(...rest.value), Math.max(...rest.value));
+
+        setQuadData({
+          px: rest.px,
+          py: rest.py,
+          pdx: rest.pdx,
+          pdy: rest.pdy,
+          value: rest.value.map((v: number) => Math.log10(v + 1e-6)),
+        });
+      }
     };
     return () => {
       w.terminate();
     };
   }, []);
 
-  function loadCutout() {
+  async function loadCutout() {
+    const rep = await fetch(resolve('data.json'));
+    if (!rep.ok) throw new Error(`Fetch failed ${rep.status}: data.json`);
+
+    const tmp = (await rep.json()) as QuadData;
+    setQuadData(tmp);
     setStatus('starting');
     setError(null);
     workerRef.current?.postMessage({ cmd: 'runCutout', cutoutUrl, wheelUrls, pyCode });
@@ -61,6 +82,17 @@ export default function CutoutRunner({
     setError(null);
     workerRef.current?.postMessage({
       cmd: 'plotCutout',
+      field: field,
+      axis: axis,
+      width: width,
+    });
+  }
+
+  function plotQuadtree() {
+    setStatus('starting quadtree plot');
+    setError(null);
+    workerRef.current?.postMessage({
+      cmd: 'plotQuadMesh',
       field: field,
       axis: axis,
       width: width,
@@ -87,7 +119,7 @@ export default function CutoutRunner({
       <button onClick={loadCutout}>Load cutout</button>
       {loaded && (
         <div>
-          <button onClick={plotCutout}>Plot cutout</button>
+          <button onClick={plotQuadtree}>Plot cutout</button>
           <div style={{ marginBottom: 8 }}>
             <select value={field} onChange={(e) => setField(e.target.value)}>
               <option value="" disabled>
@@ -123,13 +155,82 @@ export default function CutoutRunner({
           </div>
         </div>
       )}
-      {img && (
-        <img
-          src={img}
-          alt="spectrum"
-          style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: 8 }}
+      {quadData && (
+        <QuadtreeViewer
+          px={quadData.px}
+          py={quadData.py}
+          pdx={quadData.pdx}
+          pdy={quadData.pdy}
+          value={quadData.value}
+          colormap="viridis"
         />
       )}
     </div>
   );
+
+  // return (
+  //   <div className="card">
+  //     <div className="card-title">Cutout</div>
+  //     <div className="muted" style={{ marginBottom: 8 }}>
+  //       Status: {status}
+  //     </div>
+  //     {error && (
+  //       <div className="error">
+  //         Error:{' '}
+  //         {error.split('\n').map((line, i) => (
+  //           <span key={i}>
+  //             {line}
+  //             <br />
+  //           </span>
+  //         ))}
+  //       </div>
+  //     )}
+  //     <button onClick={loadCutout}>Load cutout</button>
+  //     {loaded && (
+  //       <div>
+  //         <button onClick={plotCutout}>Plot cutout</button>
+  //         <div style={{ marginBottom: 8 }}>
+  //           <select value={field} onChange={(e) => setField(e.target.value)}>
+  //             <option value="" disabled>
+  //               Select field...
+  //             </option>
+  //             {field_list?.map((field: string) => (
+  //               <option key={field} value={field}>
+  //                 {field.replace('__', ', ')}
+  //               </option>
+  //             ))}
+  //           </select>
+  //         </div>
+  //         <div style={{ marginBottom: 8 }}>
+  //           <select value={axis} onChange={(e) => setAxis(e.target.value)}>
+  //             <option value="">Select axis...</option>
+  //             <option value="x">x</option>
+  //             <option value="y">y</option>
+  //             <option value="z">z</option>
+  //           </select>
+  //         </div>
+  //         <div style={{ marginBottom: 8 }}>
+  //           <label htmlFor="width-input">Width (kpc): </label>
+  //           <input
+  //             id="width-input"
+  //             type="number"
+  //             min="0"
+  //             step="0.1"
+  //             placeholder="Enter width in kpc"
+  //             style={{ marginLeft: 4 }}
+  //             value={width}
+  //             onChange={(e) => setWidth(Number(e.target.value))}
+  //           />
+  //         </div>
+  //       </div>
+  //     )}
+  //     {img && (
+  //       <img
+  //         src={img}
+  //         alt="spectrum"
+  //         style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: 8 }}
+  //       />
+  //     )}
+  //   </div>
+  // );
 }

@@ -33,6 +33,8 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
   const controlsRef = useRef<InstanceType<typeof OrbitControls>>();
   const frameId = useRef<number>();
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [useLogScale, setUseLogScale] = useState(true);
+  const colormapMaterialRef = useRef<THREE.ShaderMaterial>();
 
   // Handle resize
   const handleResize = useCallback(() => {
@@ -111,11 +113,11 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
       viewSize * aspect,
       viewSize,
       -viewSize,
-      0.1,
+      0,
       1000
     );
-    camera.position.set(0, 0, 10);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0.5, 0.5, 10);
+    camera.lookAt(0.5, 0.5, 0);
     cameraRef.current = camera;
 
     // Renderer setup
@@ -242,6 +244,7 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
       uniform sampler2D colormap;
       uniform float minValue;
       uniform float maxValue;
+      uniform bool useLogScale;
       varying vec2 vUv;
       
       void main() {
@@ -256,7 +259,15 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
         }
 
         // Normalize value to [0, 1] range
-        float t = clamp((accumulatedValue - minValue) / (maxValue - minValue), 0.0, 1.0);
+        float t;
+        if (useLogScale) {
+          float logMin = log(minValue + 1e-6); // Avoid log(0)
+          float logMax = log(maxValue + 1e-6);
+          float logValue = log(accumulatedValue + 1e-6);
+          t = clamp((logValue - logMin) / (logMax - logMin), 0.0, 1.0);
+        } else {
+          t = clamp((accumulatedValue - minValue) / (maxValue - minValue), 0.0, 1.0);
+        }
         
         // Sample colormap texture
         vec3 color = texture2D(colormap, vec2(t, 0.5)).rgb;
@@ -273,9 +284,12 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
         colormap: { value: colormapTexture },
         minValue: { value: calculatedMin },
         maxValue: { value: calculatedMax },
+        useLogScale: { value: useLogScale },
       },
       transparent: true,
     });
+
+    colormapMaterialRef.current = colormapMaterial;
 
     const colormapMesh = new THREE.Mesh(colormapGeometry, colormapMaterial);
     colormapScene.add(colormapMesh);
@@ -289,8 +303,9 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
     controls.dampingFactor = 0.1;
     controls.enableRotate = false; // Disable rotation for 2D view
     controls.screenSpacePanning = true;
-    controls.minZoom = 0.5;
-    controls.maxZoom = 10;
+    controls.minZoom = 0;
+    controls.maxZoom = Infinity;
+    controls.target.set(0.5, 0.5, 0); // Set zoom/pan target to center
 
     controlsRef.current = controls;
 
@@ -332,16 +347,41 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({
     };
   }, [px, py, pdx, pdy, value, dimensions, colormap, minValue, maxValue]);
 
+  // Update shader uniform when scale changes
+  useEffect(() => {
+    if (colormapMaterialRef.current) {
+      colormapMaterialRef.current.uniforms.useLogScale.value = useLogScale;
+    }
+  }, [useLogScale]);
+
   return (
-    <div
-      ref={mountRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '400px',
-        overflow: 'hidden',
-      }}
-    />
+    <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
+      <div
+        ref={mountRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+        }}
+      />
+      <button
+        onClick={() => setUseLogScale(!useLogScale)}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          padding: '8px 16px',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: '500',
+        }}
+      >
+        {useLogScale ? 'Log Scale' : 'Linear Scale'}
+      </button>
+    </div>
   );
 };
 

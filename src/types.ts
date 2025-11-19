@@ -53,3 +53,11 @@ export type SpecData = {
   lambda: Float64Array | number[];
   flux: Float64Array | number[];
 };
+
+export type QuadData = {
+  px: Float64Array;
+  py: Float64Array;
+  pdx: Float64Array;
+  pdy: Float64Array;
+  value: Float64Array;
+};
