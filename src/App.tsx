@@ -1,10 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { getHalo, getSpectrum, getHalos, spectrumPath, resolve as resolveURL } from './api';
-import type { HaloGlobalInfo, SpectrumJSON, SpecData, HaloCatalog, HaloCatalogData } from './types';
+import {
+  getHalo,
+  getSpectrum,
+  getHalos,
+  spectrumPath,
+  resolve as resolveURL,
+  getResourcesConfig,
+} from './api';
+import type {
+  HaloGlobalInfo,
+  SpectrumJSON,
+  SpecData,
+  HaloCatalog,
+  HaloCatalogData,
+  ResourcesConfig,
+} from './types';
 import SpectrumChartjs from './components/SpectrumChartjs';
 import CutoutRunner from './components/CutoutRunner';
 import InfoRow from './components/InfoRow';
+import DynamicResourceCard from './components/DynamicResourceCard';
 import './styles.css';
 import HaloCatalogExample from './components/HaloCatalogExample';
 
@@ -53,6 +68,14 @@ function useHaloCatalog(catalogUrl: string = 'demo-halos/cutouts/halos_00100.asc
     queryKey: ['halo-catalog', catalogUrl],
     queryFn: ({ signal }) => getHalos(catalogUrl, signal),
     staleTime: Infinity, // 5 minutes
+  });
+}
+
+function useResourcesConfig() {
+  return useQuery<ResourcesConfig>({
+    queryKey: ['resources-config'],
+    queryFn: ({ signal }) => getResourcesConfig(signal),
+    staleTime: Infinity,
   });
 }
 
@@ -131,6 +154,7 @@ function HaloPanel({ halo }: { halo: HaloCatalogData }) {
 
 function Shell() {
   const manQ = useManifest();
+  const resourcesQ = useResourcesConfig();
   const [currentId, setCurrentId] = useState<string | null>(null);
   const haloQ = useHalo(currentId);
 
@@ -173,6 +197,10 @@ function Shell() {
             <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
             <HaloPanel halo={haloQ.data} />
             <SpectrumCard halo={haloQ.data} />
+            {/* Dynamic resource cards based on resources.json */}
+            {resourcesQ.data?.resources.map((resource) => (
+              <DynamicResourceCard key={resource.id} halo={haloQ.data!} resource={resource} />
+            ))}
           </div>
         </>
       )}
