@@ -1,24 +1,4 @@
 {
   "$schema": "./resources.schema.json",
-  "resources": [
-    {
-      "id": "spectrum",
-      "name": "Spectrum",
-      "type": "1D",
-      "bundled": true,
-      "pathTemplate": "demo-halos/spectra/output_00100/halos_{bucketId}.json.gz",
-      "dataKey": "total",
-      "xAxis": {
-        "label": "λ",
-        "unit": "Å",
-        "key": "wavelength"
-      },
-      "yAxis": {
-        "label": "fλ",
-        "unit": "arbitrary units",
-        "key": "data"
-      },
-      "downloadable": true
-    }
-  ]
+  "resources": []
 }
