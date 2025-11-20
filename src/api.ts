@@ -9,6 +9,8 @@ interface ImportMeta {
 }
 
 import { SpectrumJSON, HaloCatalog, HaloCatalogData } from './types';
+import { loadDatabase, createDatabase, isDatabaseInitialized, closeDatabase } from './db/client';
+import { getHaloById, getFullCatalog } from './db/queries';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -76,6 +78,117 @@ export async function getSpectrum(
   };
 }
 
+/**
+ * Load halos from SQLite database
+ */
+async function getHalosFromSqlite(catalogUrl: string, signal?: AbortSignal): Promise<HaloCatalog> {
+  // Convert .ascii extension to .sqlite
+  const dbUrl = catalogUrl.replace(/\.ascii$/, '.sqlite');
+  const resolvedUrl = resolve(dbUrl);
+
+  console.log(`Loading SQLite database from ${resolvedUrl}`);
+
+  try {
+    // Load the database
+    await loadDatabase(resolvedUrl);
+
+    // Get full catalog using ORM
+    const catalog = await getFullCatalog();
+
+    console.log(`Loaded ${catalog.halos.length} halos from SQLite database`);
+
+    return catalog;
+  } catch (error) {
+    console.error('Error loading SQLite database:', error);
+    throw error;
+  }
+}
+
+/**
+ * Load halos from ASCII file (legacy fallback)
+ */
+async function getHalosFromAscii(catalogUrl: string, signal?: AbortSignal): Promise<HaloCatalog> {
+  const resolvedUrl = resolve(catalogUrl);
+
+  const response = await fetch(resolvedUrl, { signal });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load halo catalog: ${response.status} ${response.statusText} from ${resolvedUrl}`
+    );
+  }
+
+  const text = await response.text();
+  const lines = text.split('\n');
+  const haloData: HaloCatalogData[] = [];
+  let h0 = 1;
+
+  // Parse first line for column headers
+  const headerLine = lines.shift();
+
+  const headers = headerLine ? headerLine.slice(1).trim().split(/\s+/) : [];
+
+  for (const line of lines) {
+    // Parse Hubble parameter from header comments
+    if (line.startsWith('#Om')) {
+      const match = line.match(/#h0\s*=\s*([\d.]+)/);
+      if (match) {
+        h0 = parseFloat(match[1]);
+      }
+    }
+
+    // Skip comments and empty lines
+    if (line.startsWith('#') || line.trim() === '') continue;
+
+    const columns = line.trim().split(/\s+/);
+    if (columns.length !== headers.length) {
+      console.warn('Skipping line with unexpected number of columns:', line);
+      continue;
+    }
+
+    const id = parseInt(columns[headers.indexOf('id')]);
+    const mass = parseFloat(columns[headers.indexOf('m200b')]) / h0;
+    const x = (parseFloat(columns[headers.indexOf('x')]) - 25) / h0;
+    const y = (parseFloat(columns[headers.indexOf('y')]) - 25) / h0;
+    const z = (parseFloat(columns[headers.indexOf('z')]) - 25) / h0;
+    const rc = parseFloat(columns[headers.indexOf('Rs')]) / 1000 / h0;
+    const r200b = parseFloat(columns[headers.indexOf('r200b')]) / 1000 / h0;
+
+    // Skip invalid data
+    if (isNaN(id) || isNaN(mass) || isNaN(x) || isNaN(y) || isNaN(z) || isNaN(rc) || isNaN(r200b)) {
+      continue;
+    }
+
+    haloData.push({ id, x, y, z, mass, r200b, rc });
+  }
+
+  if (haloData.length === 0) {
+    throw new Error('No valid halo data found in catalog');
+  }
+
+  // Calculate statistics
+  const masses = haloData.map((h) => h.mass);
+  const xs = haloData.map((h) => h.x);
+  const ys = haloData.map((h) => h.y);
+  const zs = haloData.map((h) => h.z);
+
+  const catalog: HaloCatalog = {
+    halos: haloData,
+    h0,
+    stats: {
+      total: haloData.length,
+      massRange: [Math.min(...masses), Math.max(...masses)],
+      positionRange: {
+        x: [Math.min(...xs), Math.max(...xs)],
+        y: [Math.min(...ys), Math.max(...ys)],
+        z: [Math.min(...zs), Math.max(...zs)],
+      },
+    },
+  };
+
+  return catalog;
+}
+
 export async function getHalos(
   catalogUrl: string = 'demo-halos/cutouts/halos_00100.ascii',
   signal?: AbortSignal
@@ -93,95 +206,19 @@ export async function getHalos(
   // Create and cache the promise to prevent duplicate requests
   haloCatalogPromise = (async () => {
     try {
-      const resolvedUrl = resolve(catalogUrl);
+      // Try SQLite first
+      try {
+        const catalog = await getHalosFromSqlite(catalogUrl, signal);
+        haloCatalogCache = catalog;
+        return catalog;
+      } catch (sqliteError) {
+        console.log('SQLite database not available, falling back to ASCII:', sqliteError);
 
-      const response = await fetch(resolvedUrl, { signal });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load halo catalog: ${response.status} ${response.statusText} from ${resolvedUrl}`
-        );
+        // Fall back to ASCII parsing
+        const catalog = await getHalosFromAscii(catalogUrl, signal);
+        haloCatalogCache = catalog;
+        return catalog;
       }
-
-      const text = await response.text();
-      const lines = text.split('\n');
-      const haloData: HaloCatalogData[] = [];
-      let h0 = 1;
-
-      // Parse first line for column headers
-      const headerLine = lines.shift();
-
-      const headers = headerLine ? headerLine.slice(1).trim().split(/\s+/) : [];
-
-      for (const line of lines) {
-        // Parse Hubble parameter from header comments
-        if (line.startsWith('#Om')) {
-          const match = line.match(/#h0\s*=\s*([\d.]+)/);
-          if (match) {
-            h0 = parseFloat(match[1]);
-          }
-        }
-
-        // Skip comments and empty lines
-        if (line.startsWith('#') || line.trim() === '') continue;
-
-        const columns = line.trim().split(/\s+/);
-        if (columns.length !== headers.length) {
-          console.warn('Skipping line with unexpected number of columns:', line);
-          continue;
-        }
-
-        const id = parseInt(columns[headers.indexOf('id')]);
-        const mass = parseFloat(columns[headers.indexOf('m200b')]) / h0;
-        const x = (parseFloat(columns[headers.indexOf('x')]) - 25) / h0;
-        const y = (parseFloat(columns[headers.indexOf('y')]) - 25) / h0;
-        const z = (parseFloat(columns[headers.indexOf('z')]) - 25) / h0;
-        const rc = parseFloat(columns[headers.indexOf('Rs')]) / 1000 / h0;
-        const r200b = parseFloat(columns[headers.indexOf('r200b')]) / 1000 / h0;
-
-        // Skip invalid data
-        if (
-          isNaN(id) ||
-          isNaN(mass) ||
-          isNaN(x) ||
-          isNaN(y) ||
-          isNaN(z) ||
-          isNaN(rc) ||
-          isNaN(r200b)
-        ) {
-          continue;
-        }
-
-        haloData.push({ id, x, y, z, mass, r200b, rc });
-      }
-
-      if (haloData.length === 0) {
-        throw new Error('No valid halo data found in catalog');
-      }
-
-      // Calculate statistics
-      const masses = haloData.map((h) => h.mass);
-      const xs = haloData.map((h) => h.x);
-      const ys = haloData.map((h) => h.y);
-      const zs = haloData.map((h) => h.z);
-
-      const catalog: HaloCatalog = {
-        halos: haloData,
-        h0,
-        stats: {
-          total: haloData.length,
-          massRange: [Math.min(...masses), Math.max(...masses)],
-          positionRange: {
-            x: [Math.min(...xs), Math.max(...xs)],
-            y: [Math.min(...ys), Math.max(...ys)],
-            z: [Math.min(...zs), Math.max(...zs)],
-          },
-        },
-      };
-
-      // Cache the successful result
-      haloCatalogCache = catalog;
-      return catalog;
     } catch (error) {
       console.error('Error in getHalos:', error);
       // Clear the promise cache on error so retries can happen
@@ -198,6 +235,20 @@ export async function getHaloFromCatalog(
   signal?: AbortSignal
 ): Promise<HaloCatalogData | null> {
   console.log('Fetching halo from catalog:', haloId);
+
+  // Try to get from SQLite database if initialized
+  if (isDatabaseInitialized()) {
+    try {
+      const halo = await getHaloById(haloId);
+      if (halo) {
+        return halo;
+      }
+    } catch (error) {
+      console.error('Error fetching halo from SQLite:', error);
+    }
+  }
+
+  // Fallback to loading full catalog
   const catalog = await getHalos('demo-halos/cutouts/halos_00100.ascii', signal);
   return catalog.halos.find((h) => h.id === haloId) || null;
 }
