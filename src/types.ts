@@ -42,3 +42,19 @@ export type SpecData = {
   lambda: Float64Array | number[];
   flux: Float64Array | number[];
 };
+
+export type ResourceType = '1d' | '2d' | '3d';
+
+export type ResourceDataType = 'spectrum' | 'image' | 'cutout';
+
+export type ResourceConfig = {
+  id: string;
+  type: ResourceType;
+  title: string;
+  dataType: ResourceDataType;
+  urlTemplate: string;
+};
+
+export type ResourcesConfig = {
+  resources: ResourceConfig[];
+};

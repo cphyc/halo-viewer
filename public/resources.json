@@ -1,0 +1,11 @@
+{
+  "resources": [
+    {
+      "id": "spectrum",
+      "type": "1d",
+      "title": "Spectrum",
+      "dataType": "spectrum",
+      "urlTemplate": "demo-halos/halo_{id}_spectrum.json"
+    }
+  ]
+}

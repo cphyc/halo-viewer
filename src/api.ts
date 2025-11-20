@@ -8,7 +8,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-import { SpectrumJSON, HaloCatalog, HaloCatalogData } from './types';
+import { SpectrumJSON, HaloCatalog, HaloCatalogData, ResourcesConfig } from './types';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -170,4 +170,8 @@ export async function getHaloFromCatalog(
   console.log('Fetching halo from catalog:', haloId);
   const catalog = await getHalos('demo-halos/halos_00100.ascii', signal);
   return catalog.halos.find((h) => h.id === haloId) || null;
+}
+
+export async function getResources(signal?: AbortSignal): Promise<ResourcesConfig> {
+  return fetchJSON<ResourcesConfig>('resources.json', signal);
 }

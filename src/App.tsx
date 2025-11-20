@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { getHalo, getSpectrum, getHalos, spectrumPath, resolve as resolveURL } from './api';
-import type { HaloGlobalInfo, SpectrumJSON, SpecData, HaloCatalog, HaloCatalogData } from './types';
-import SpectrumChartjs from './components/SpectrumChartjs';
+import { getHalo, getHalos, getResources, resolve as resolveURL } from './api';
+import type { HaloCatalog, HaloCatalogData, ResourcesConfig } from './types';
 import CutoutRunner from './components/CutoutRunner';
 import InfoRow from './components/InfoRow';
+import ResourceCard from './components/ResourceCard';
 import './styles.css';
 import HaloCatalogExample from './components/HaloCatalogExample';
 
@@ -62,47 +62,12 @@ function useHaloCatalog(catalogUrl: string = 'demo-halos/halos_00100.ascii') {
   });
 }
 
-function useSpectrum(halo_id: number) {
-  const specPath = spectrumPath(halo_id);
-  return useQuery<SpectrumJSON>({
-    enabled: !!specPath,
-    queryKey: ['spectrum', specPath],
-    queryFn: ({ signal }) => getSpectrum(specPath!, signal),
+function useResources() {
+  return useQuery<ResourcesConfig>({
+    queryKey: ['resources'],
+    queryFn: ({ signal }) => getResources(signal),
+    staleTime: Infinity,
   });
-}
-
-function SpectrumCard({ halo }: { halo: HaloCatalogData }) {
-  const specQ = useSpectrum(halo.id);
-
-  const data: SpecData | null = useMemo(() => {
-    if (!specQ.data) return null;
-    if ('lambda' in specQ.data && 'flux' in specQ.data) {
-      return {
-        lambda: Float64Array.from(specQ.data.lambda),
-        flux: Float64Array.from(specQ.data.flux),
-      };
-    }
-    if ('pairs' in specQ.data) {
-      const n = specQ.data.pairs.length;
-      const l = new Float64Array(n);
-      const f = new Float64Array(n);
-      for (let i = 0; i < n; i++) {
-        l[i] = specQ.data.pairs[i][0];
-        f[i] = specQ.data.pairs[i][1];
-      }
-      return { lambda: l, flux: f };
-    }
-    return null;
-  }, [specQ.data]);
-
-  return (
-    <div className="card">
-      <div className="card-title">Spectrum</div>
-      {specQ.isLoading && <div className="muted">Loading spectrum for halo {halo.id}…</div>}
-      {specQ.error && <div className="error">Failed to load spectrum</div>}
-      {data && <SpectrumChartjs data={data} />}
-    </div>
-  );
 }
 
 function HaloPanel({ halo }: { halo: HaloCatalogData }) {
@@ -141,6 +106,7 @@ function HaloPanel({ halo }: { halo: HaloCatalogData }) {
 
 function Shell() {
   const manQ = useManifest();
+  const resourcesQ = useResources();
   const [currentId, setCurrentId] = useState<string | null>(null);
   const haloQ = useHalo(currentId);
 
@@ -176,10 +142,16 @@ function Shell() {
             <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
             <HaloPanel halo={haloQ.data} />
           </div>
-          <div className="grid2">
-            <SpectrumCard halo={haloQ.data} />
-            <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.data.id}_gas.bin`)} />
-          </div>
+          {resourcesQ.isLoading && <div className="muted">Loading resources…</div>}
+          {resourcesQ.error && <div className="error">Failed to load resources configuration</div>}
+          {resourcesQ.data && (
+            <div className="grid2">
+              {resourcesQ.data.resources.map((resource) => (
+                <ResourceCard key={resource.id} resource={resource} halo={haloQ.data!} />
+              ))}
+              <CutoutRunner cutoutUrl={resolveURL(`demo-halos/halo_${haloQ.data.id}_gas.bin`)} />
+            </div>
+          )}
         </>
       )}
       <footer className="footer">
