@@ -67,16 +67,20 @@ export default function CutoutRunner({
   }, []);
 
   async function loadCutout() {
-    const rep = await fetch(resolve('data.json'));
-    if (!rep.ok) throw new Error(`Fetch failed ${rep.status}: data.json`);
-
-    const tmp = (await rep.json()) as QuadData;
-    setQuadData(tmp);
     setStatus('starting');
     setError(null);
     workerRef.current?.postMessage({ cmd: 'runCutout', cutoutUrl, wheelUrls, pyCode });
   }
 
+  async function loadNow() {
+    const rep = await fetch(resolve('data.json'));
+    if (!rep.ok) throw new Error(`Fetch failed ${rep.status}: data.json`);
+
+    const tmp = (await rep.json()) as QuadData;
+    setQuadData(tmp);
+  }
+
+  loadNow();
   function plotCutout() {
     setStatus('starting');
     setError(null);
