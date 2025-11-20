@@ -20,6 +20,7 @@ function useResourceData(resource: ResourceConfig, haloId: number) {
 
 function downloadData(data: Data1D, filename: string, resource: ResourceConfig) {
   // Create a JSON representation of the data
+  // For bundled resources, this data has already been unbundled in the useMemo hook
   const output = {
     [resource.xAxis?.key || 'x']: Array.from(data.x),
     [resource.yAxis?.key || 'y']: Array.from(data.y),
