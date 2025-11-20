@@ -6,4 +6,4 @@
 	url = https://github.com/yt-project/yt_experiments
 [submodule "external/js-colormaps"]
 	path = external/js-colormaps
-	url = https://github.com/timothygebhard/js-colormaps
+	url = https://github.com/cphyc/js-colormaps
