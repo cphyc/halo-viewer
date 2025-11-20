@@ -410,8 +410,8 @@ value = value[mask]
         Float64Array,
         Float64Array,
         Float64Array,
-        [Number, Number],
-        Number,
+        [number, number],
+        number,
       ];
 
       post('quadtree-data', { px, py, pdx, pdy, value: data, center, width });

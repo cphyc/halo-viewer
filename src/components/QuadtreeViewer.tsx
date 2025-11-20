@@ -7,12 +7,16 @@ import { QuadData } from '../types';
 
 export interface QuadtreeViewerProps {
   quadData: QuadData;
-  center: [Number, Number];
-  width: Number;
+  center: [number, number];
+  width: number;
 }
 
 const cmapChoices = Object.keys(cmaps).filter(
-  (key) => key !== 'evaluate_cmap' && !key.endsWith('_r') && key !== 'interpolated'&& key !== 'qualitative'
+  (key) =>
+    key !== 'evaluate_cmap' &&
+    !key.endsWith('_r') &&
+    key !== 'interpolated' &&
+    key !== 'qualitative'
 );
 
 const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ quadData, center, width }) => {
@@ -75,21 +79,21 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ quadData, center, width
     const aspect = mountRef.current
       ? mountRef.current.clientWidth / mountRef.current.clientHeight
       : 1;
-    
+
     // Set up orthographic camera to show the specified width
     const halfWidth = width / 2;
     const halfHeight = halfWidth / aspect;
     const camera = new THREE.OrthographicCamera(
-      -halfWidth, 
-      halfWidth, 
-      halfHeight, 
-      -halfHeight, 
-      0, 
+      -halfWidth,
+      halfWidth,
+      halfHeight,
+      -halfHeight,
+      0,
       1000
     );
     camera.position.set(center[0], center[1], 10);
     camera.lookAt(center[0], center[1], 0);
-    
+
     const rect = mountRef.current?.getBoundingClientRect();
     const canvasWidth = rect?.width || 800;
     const canvasHeight = rect?.height || 600;
