@@ -30,7 +30,8 @@ export type HaloCatalog = {
   };
 };
 
-export type SpectrumJSON = {
+// Generic 1D data (replaces SpectrumJSON for bundled format)
+export type Data1DJSON = {
   // gz-compressed multi-halo format
   output: string;
   wavelength: Float64Array;
@@ -45,10 +46,20 @@ export type SpectrumJSON = {
   };
 };
 
+// Legacy alias for backward compatibility
+export type SpectrumJSON = Data1DJSON;
+
 export type Manifest = {
   halos: { id: string; name?: string }[];
 };
 
+// Generic 1D data structure
+export type Data1D = {
+  x: Float64Array | number[]; // x-axis values (e.g., wavelength, time, etc.)
+  y: Float64Array | number[]; // y-axis values (e.g., flux, intensity, etc.)
+};
+
+// Legacy format for spectrum data (backward compatibility)
 export type SpecData = {
   lambda: Float64Array | number[];
   flux: Float64Array | number[];
@@ -60,4 +71,27 @@ export type QuadData = {
   pdx: Float64Array;
   pdy: Float64Array;
   value: Float64Array;
+};
+
+// Resource configuration types
+export type AxisConfig = {
+  label: string;
+  unit: string;
+  key?: string;
+};
+
+export type ResourceConfig = {
+  id: string;
+  name: string;
+  type: '1D' | '2D' | '3D';
+  bundled: boolean;
+  pathTemplate: string;
+  dataKey?: string;
+  xAxis?: AxisConfig;
+  yAxis?: AxisConfig;
+  downloadable?: boolean;
+};
+
+export type ResourcesConfig = {
+  resources: ResourceConfig[];
 };

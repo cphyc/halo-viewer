@@ -1,4 +1,4 @@
-// src/components/SpectrumChartjs.tsx
+// src/components/Data1DChartjs.tsx
 import { useEffect, useRef } from 'react';
 import {
   Chart,
@@ -14,7 +14,7 @@ import {
   Title,
 } from 'chart.js';
 
-import { SpecData, Data1D } from '../types';
+import { Data1D } from '../types';
 
 Chart.register(
   LineController,
@@ -30,23 +30,23 @@ Chart.register(
 );
 
 type Props = {
-  data: SpecData | Data1D; // Accept both old and new formats
+  data: Data1D;
   height?: number; // CSS height of the container
-  xLabel?: string; // default: 'λ'
-  xUnit?: string; // default: 'Å'
-  yLabel?: string; // default: 'fλ'
-  yUnit?: string; // default: 'arbitrary units'
+  xLabel?: string; // default: 'x'
+  xUnit?: string; // default: ''
+  yLabel?: string; // default: 'y'
+  yUnit?: string; // default: ''
   color?: string; // CSS color for the line
   maxPoints?: number; // decimation target
 };
 
-export default function SpectrumChartjs({
+export default function Data1DChartjs({
   data,
   height = 260,
-  xLabel = 'λ',
-  xUnit = 'Å',
-  yLabel = 'fλ',
-  yUnit = 'arbitrary units',
+  xLabel = 'x',
+  xUnit = '',
+  yLabel = 'y',
+  yUnit = '',
   color,
   maxPoints = 1500,
 }: Props) {
@@ -57,29 +57,14 @@ export default function SpectrumChartjs({
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
 
-    // Support both old format (lambda/flux) and new format (x/y)
-    let xData: Float64Array | number[];
-    let yData: Float64Array | number[];
-
-    if ('lambda' in data && 'flux' in data) {
-      xData = data.lambda;
-      yData = data.flux;
-    } else if ('x' in data && 'y' in data) {
-      xData = data.x;
-      yData = data.y;
-    } else {
-      // Fallback to empty arrays if neither format matches
-      xData = [];
-      yData = [];
-    }
-
-    const n = Math.min(xData.length, yData.length);
+    const { x, y } = data;
+    const n = Math.min(x.length, y.length);
 
     // Chart.js accepts array of {x, y} when parsing=false
     const points: { x: number; y: number }[] = new Array(n);
     for (let i = 0; i < n; i++) {
       // Number() ensures typed arrays or numbers both work
-      points[i] = { x: Number((xData as any)[i]), y: Number((yData as any)[i]) };
+      points[i] = { x: Number((x as any)[i]), y: Number((y as any)[i]) };
     }
 
     // Clean any previous instance
@@ -93,7 +78,7 @@ export default function SpectrumChartjs({
       data: {
         datasets: [
           {
-            label: `${yLabel} [${yUnit}]`,
+            label: `${yLabel}${yUnit ? ' [' + yUnit + ']' : ''}`,
             data: points,
             parsing: false,
             borderWidth: 1.5,
@@ -129,13 +114,13 @@ export default function SpectrumChartjs({
         scales: {
           x: {
             type: 'linear',
-            title: { display: true, text: `${xLabel} [${xUnit}]` },
+            title: { display: true, text: `${xLabel}${xUnit ? ' [' + xUnit + ']' : ''}` },
             ticks: { maxTicksLimit: 8 },
             grid: { color: 'rgba(0,0,0,0.08)' },
           },
           y: {
             type: 'linear',
-            title: { display: true, text: `${yLabel} [${yUnit}]` },
+            title: { display: true, text: `${yLabel}${yUnit ? ' [' + yUnit + ']' : ''}` },
             ticks: { maxTicksLimit: 6 },
             grid: { color: 'rgba(0,0,0,0.08)' },
           },
