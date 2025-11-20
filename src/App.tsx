@@ -136,8 +136,9 @@ function Shell() {
 
   useEffect(() => {
     if (manQ.data && !currentId) {
-      console.log(`Setting to ${manQ.data.halos[0]?.id}.`);
-      setCurrentId(manQ.data.halos[0]?.id ?? null);
+      const i = manQ.data.halos.length - 1;
+      console.log(`Setting to ${manQ.data.halos[i]?.id}.`);
+      setCurrentId(manQ.data.halos[i]?.id ?? null);
     }
   }, [manQ.data, currentId]);
 
@@ -164,16 +165,14 @@ function Shell() {
       {haloQ.data && (
         <>
           <div className="grid2">
-            <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
-            <HaloPanel halo={haloQ.data} />
-          </div>
-          <div className="grid2">
-            <SpectrumCard halo={haloQ.data} />
             <CutoutRunner
               cutoutUrl={resolveURL(
                 `demo-halos/cutouts/output_00100/halo_${haloQ.data.id}_gas.bin`
               )}
             />
+            <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
+            <HaloPanel halo={haloQ.data} />
+            <SpectrumCard halo={haloQ.data} />
           </div>
         </>
       )}

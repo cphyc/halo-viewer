@@ -6,27 +6,19 @@ import * as cmaps from '../../external/js-colormaps/js-colormaps';
 import { QuadData } from '../types';
 
 export interface QuadtreeViewerProps {
-  px: Float64Array;
-  py: Float64Array;
-  pdx: Float64Array;
-  pdy: Float64Array;
-  value: Float64Array;
+  quadData: QuadData;
+  center: [Number, Number];
+  width: Number;
 }
 
 const cmapChoices = Object.keys(cmaps).filter(
-  (key) => key !== 'evaluate_cmap' && !key.endsWith('_r') && key !== 'interpolated'
+  (key) => key !== 'evaluate_cmap' && !key.endsWith('_r') && key !== 'interpolated'&& key !== 'qualitative'
 );
 
-const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ px, py, pdx, pdy, value }) => {
+const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ quadData, center, width }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer>();
-  const [quadData, setQuadData] = useState<QuadData>({
-    px: px,
-    py: py,
-    pdx: pdx,
-    pdy: pdy,
-    value: value,
-  });
+
   const Ncmap = 256;
   const [colormap, setColormap] = useState<(typeof cmapChoices)[number]>('magma');
   const cmapRef = useRef<THREE.DataTexture | null>(null);
@@ -83,17 +75,28 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ px, py, pdx, pdy, value
     const aspect = mountRef.current
       ? mountRef.current.clientWidth / mountRef.current.clientHeight
       : 1;
-    const camera = new THREE.OrthographicCamera(-1 * aspect, 1 * aspect, 1, -1, 0, 1000);
-    camera.position.set(0.5, 0.5, 10);
-    camera.lookAt(0.5, 0.5, 0);
-
+    
+    // Set up orthographic camera to show the specified width
+    const halfWidth = width / 2;
+    const halfHeight = halfWidth / aspect;
+    const camera = new THREE.OrthographicCamera(
+      -halfWidth, 
+      halfWidth, 
+      halfHeight, 
+      -halfHeight, 
+      0, 
+      1000
+    );
+    camera.position.set(center[0], center[1], 10);
+    camera.lookAt(center[0], center[1], 0);
+    
     const rect = mountRef.current?.getBoundingClientRect();
-    const width = rect?.width || 800;
-    const height = rect?.height || 600;
+    const canvasWidth = rect?.width || 800;
+    const canvasHeight = rect?.height || 600;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-    renderer.setSize(width, height);
+    renderer.setSize(canvasWidth, canvasHeight);
     rendererRef.current = renderer;
 
     // Initialize colormap texture
@@ -105,7 +108,7 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ px, py, pdx, pdy, value
     const geometry = new THREE.PlaneGeometry(1, 1);
     const valueArray = new Float32Array(quadData.px.length);
 
-    const vmin = Math.min(...quadData.value);
+    const vmin = Math.min(...quadData.value.filter((v) => v > 0));
     const vmax = Math.max(...quadData.value);
 
     for (let i = 0; i < quadData.px.length; i++) {
@@ -171,7 +174,7 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ px, py, pdx, pdy, value
     }
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0.5, 0.5, 0);
+    controls.target.set(center[0], center[1], 0);
     controls.enableRotate = false;
     controls.update();
 
@@ -207,7 +210,6 @@ const QuadtreeViewer: React.FC<QuadtreeViewerProps> = ({ px, py, pdx, pdy, value
 
   return (
     <>
-      <div>Quadtree Viewer</div>
       <select
         value={colormap}
         onChange={(e) => setColormap(e.target.value as (typeof cmapChoices)[number])}

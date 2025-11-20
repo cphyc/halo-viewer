@@ -372,25 +372,49 @@ ad = ds.all_data().exclude_nan(("gas", "density"))
     }
 
     if (cmd == 'plotQuadMesh') {
-      const { field, axis, width } = e.data;
+      const { field, axis } = e.data;
       const getQuadCode = `
 field_js = "${field}"
 field = tuple(field_js.split("__"))
 
 # Create quad mesh plot
-proj = ds.proj(field, "${axis}", data_source=ad)
-(proj["px"].value, proj["py"].value, proj["pdx"].value, proj["pdy"].value, proj[field].value)`;
+proj = ds.proj(field, "${axis}", data_source=ad, weight_field=("gas", "density"))
+center = list(ds.domain_center.value)
+
+iaxis = "xyz".index("${axis}")
+center = (*center[:iaxis], *center[iaxis+1:])
+width = float(max(
+  (ad["x"].max() - ad["x"].min()).to("code_length").value,
+  (ad["y"].max() - ad["y"].min()).to("code_length").value,
+  (ad["z"].max() - ad["z"].min()).to("code_length").value,
+))
+value = proj[field].value
+yt.mylog.info("%s", width)
+
+mask = np.isfinite(value)
+
+px = proj["px"].value[mask]
+py = proj["py"].value[mask]
+pdx = proj["pdx"].value[mask]
+pdy = proj["pdy"].value[mask]
+value = value[mask]
+
+(px, py, pdx, pdy, value, center, width)`;
 
       post('status', { status: 'getting quad mesh…' });
       const result = await pyodide.runPythonAsync(getQuadCode);
-      const [px, py, pdx, pdy, data] = result.toJs() as [
+      post('status', { status: 'done' });
+      const [px, py, pdx, pdy, data, center, width] = result.toJs() as [
         Float64Array,
         Float64Array,
         Float64Array,
         Float64Array,
         Float64Array,
+        [Number, Number],
+        Number,
       ];
-      post('quadtree-data', { px, py, pdx, pdy, value: data });
+
+      post('quadtree-data', { px, py, pdx, pdy, value: data, center, width });
     }
 
     if (cmd == 'plotCutout') {

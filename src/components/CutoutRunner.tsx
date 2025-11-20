@@ -28,7 +28,8 @@ export default function CutoutRunner({
   const [field_list, setFields] = useState<string[] | null>(null);
   const [field, setField] = useState<string>('');
   const [axis, setAxis] = useState<string>('x');
-  const [width, setWidth] = useState<number>(20);
+  const [width, setWidth] = useState<Number>(1);
+  const [center, setCenter] = useState<[Number, Number]>([0.5, 0.5]);
 
   const [quadData, setQuadData] = useState<QuadData | null>(null);
 
@@ -50,15 +51,17 @@ export default function CutoutRunner({
         setField('gas__density');
       }
       if (type === 'quadtree-data') {
-        console.log('Got quadtree data', Math.min(...rest.value), Math.max(...rest.value));
+        console.log('Got quadtree data', Math.min(...rest.value), Math.max(...rest.value), rest.center, rest.width);
 
         setQuadData({
           px: rest.px,
           py: rest.py,
           pdx: rest.pdx,
           pdy: rest.pdy,
-          value: rest.value.map((v: number) => Math.log10(v + 1e-6)),
+          value: rest.value,
         });
+        setCenter(rest.center);
+        setWidth(rest.width);
       }
     };
     return () => {
@@ -72,15 +75,6 @@ export default function CutoutRunner({
     workerRef.current?.postMessage({ cmd: 'runCutout', cutoutUrl, wheelUrls, pyCode });
   }
 
-  async function loadNow() {
-    const rep = await fetch(resolve('data.json'));
-    if (!rep.ok) throw new Error(`Fetch failed ${rep.status}: data.json`);
-
-    const tmp = (await rep.json()) as QuadData;
-    setQuadData(tmp);
-  }
-
-  loadNow();
   function plotCutout() {
     setStatus('starting');
     setError(null);
@@ -99,7 +93,6 @@ export default function CutoutRunner({
       cmd: 'plotQuadMesh',
       field: field,
       axis: axis,
-      width: width,
     });
   }
 
@@ -161,12 +154,9 @@ export default function CutoutRunner({
       )}
       {quadData && (
         <QuadtreeViewer
-          px={quadData.px}
-          py={quadData.py}
-          pdx={quadData.pdx}
-          pdy={quadData.pdy}
-          value={quadData.value}
-          colormap="viridis"
+         quadData={quadData}
+         center={center}
+         width={width}
         />
       )}
     </div>
