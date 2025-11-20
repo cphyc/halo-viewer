@@ -24,4 +24,5 @@ dist-ssr
 *.sw?
 
 # Data directory
-public/demo-halos/
+public/demo-halos/public/demo-halos/
+.env.local

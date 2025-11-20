@@ -6,6 +6,13 @@
       "title": "Spectrum",
       "dataType": "spectrum",
       "urlTemplate": "demo-halos/halo_{id}_spectrum.json"
+    },
+    {
+      "id": "image",
+      "type": "2d",
+      "title": "Image",
+      "dataType": "image",
+      "urlTemplate": "demo-halos/halo_{id}_image.png"
     }
   ]
 }
