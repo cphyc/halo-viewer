@@ -59,12 +59,6 @@ export type Data1D = {
   y: Float64Array | number[]; // y-axis values (e.g., flux, intensity, etc.)
 };
 
-// Legacy format for spectrum data (backward compatibility)
-export type SpecData = {
-  lambda: Float64Array | number[];
-  flux: Float64Array | number[];
-};
-
 export type QuadData = {
   px: Float64Array;
   py: Float64Array;
@@ -84,7 +78,7 @@ export type ResourceConfig = {
   id: string;
   name: string;
   type: '1D' | '2D' | '3D';
-  bundled: boolean;
+  bundle_size: number;
   pathTemplate: string;
   dataKey?: string;
   xAxis?: AxisConfig;

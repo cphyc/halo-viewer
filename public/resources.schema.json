@@ -32,9 +32,10 @@
           "enum": ["1D", "2D", "3D"],
           "description": "Dimensionality of the data"
         },
-        "bundled": {
-          "type": "boolean",
-          "description": "Whether the resource is bundled (multiple halos per file) or not (one file per halo)"
+        "bundle_size": {
+          "type": "integer",
+          "description": "Number of object per bundle (for bundled resources). Set to 0 for unbundled resources.",
+          "default": 0
         },
         "pathTemplate": {
           "type": "string",
@@ -58,7 +59,7 @@
           "description": "Whether the data can be downloaded"
         }
       },
-      "required": ["id", "name", "type", "bundled", "pathTemplate"]
+      "required": ["id", "name", "type", "pathTemplate"]
     },
     "axis": {
       "type": "object",

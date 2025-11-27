@@ -1,22 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import {
-  getHalo,
-  getSpectrum,
-  getHalos,
-  spectrumPath,
-  resolve as resolveURL,
-  getResourcesConfig,
-} from './api';
-import type {
-  HaloGlobalInfo,
-  SpectrumJSON,
-  SpecData,
-  HaloCatalog,
-  HaloCatalogData,
-  ResourcesConfig,
-} from './types';
-import SpectrumChartjs from './components/SpectrumChartjs';
+import { getHalo, getHalos, resolve as resolveURL, getResourcesConfig } from './api';
+import type { HaloGlobalInfo, HaloCatalog, HaloCatalogData, ResourcesConfig } from './types';
 import CutoutRunner from './components/CutoutRunner';
 import InfoRow from './components/InfoRow';
 import DynamicResourceCard from './components/DynamicResourceCard';
@@ -77,45 +62,6 @@ function useResourcesConfig() {
     queryFn: ({ signal }) => getResourcesConfig(signal),
     staleTime: Infinity,
   });
-}
-
-function useSpectrum(halo_id: number) {
-  const specPath = spectrumPath(halo_id);
-  return useQuery<SpectrumJSON>({
-    enabled: !!specPath,
-    queryKey: ['spectrum', specPath, halo_id],
-    queryFn: ({ signal }) => getSpectrum(specPath!, halo_id, signal),
-  });
-}
-
-function SpectrumCard({ halo }: { halo: HaloCatalogData }) {
-  const specQ = useSpectrum(halo.id);
-
-  const data: SpecData | null = useMemo(() => {
-    if (!specQ.data) return null;
-
-    // Handle new gz-compressed multi-halo format
-    if ('wavelength' in specQ.data && 'data' in specQ.data) {
-      const haloData = specQ.data.data[halo.id.toString()];
-      if (haloData && haloData.total) {
-        return {
-          lambda: specQ.data.wavelength,
-          flux: haloData.total,
-        };
-      }
-      return null;
-    }
-    return null;
-  }, [specQ.data, halo.id]);
-
-  return (
-    <div className="card">
-      <div className="card-title">Spectrum</div>
-      {specQ.isLoading && <div className="muted">Loading spectrum for halo {halo.id}…</div>}
-      {specQ.error && <div className="error">Failed to load spectrum</div>}
-      {data && <SpectrumChartjs data={data} />}
-    </div>
-  );
 }
 
 function HaloPanel({ halo }: { halo: HaloCatalogData }) {
@@ -196,7 +142,6 @@ function Shell() {
             />
             <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
             <HaloPanel halo={haloQ.data} />
-            <SpectrumCard halo={haloQ.data} />
             {/* Dynamic resource cards based on resources.json */}
             {resourcesQ.data?.resources.map((resource) => (
               <DynamicResourceCard key={resource.id} halo={haloQ.data!} resource={resource} />
