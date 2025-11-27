@@ -99,21 +99,21 @@ export default function CutoutRunner({
     };
   }, []);
 
-  useEffect(plotQuadtree, [field, axis, field]);
+  useEffect(getQuadTree, [field, axis, field]);
 
   async function loadCutout() {
     setStatus('starting');
     setError(null);
     getSharedWorker().postMessage({ cmd: 'runCutout', cutoutUrl, pyCode });
-    plotQuadtree();
+    getQuadTree();
   }
 
-  function plotQuadtree() {
+  function getQuadTree() {
     if (!field || !axis) return;
     setStatus('plotting');
     setError(null);
     getSharedWorker().postMessage({
-      cmd: 'plotQuadMesh',
+      cmd: 'getQuadTree',
       field: field,
       axis: axis,
     });
@@ -139,7 +139,7 @@ export default function CutoutRunner({
       {initialized && !loaded && <button onClick={loadCutout}>Load cutout</button>}
       {loaded && (
         <div>
-          <button onClick={plotQuadtree}>Plot cutout</button>
+          {!quadData && <button onClick={getQuadTree}>Plot cutout</button>}
           <div style={{ marginBottom: 8 }}>
             <select value={field} onChange={(e) => setField(e.target.value)}>
               <option value="" disabled>

@@ -109,12 +109,32 @@ ad = ds.all_data().exclude_nan(("gas", "density"))
       const fields = await pyodide.runPythonAsync(loadDatasetCode);
       post('status', { status: 'ready' });
       const field_names = fields.toJs() as string[];
-      console.log('Available fields:', field_names);
-      post('set-fields', { fields: field_names });
+
+      // Some fields cause issues: blacklist them
+      const blacklist = new Set([
+        'gas__baroclinic_vorticity_magnitude',
+        'gas__baroclinic_vorticity_x',
+        'gas__baroclinic_vorticity_y',
+        'gas__baroclinic_vorticity_z',
+        'gas__pressure_gradient_magnitude',
+        'gas__pressure_gradient_x',
+        'gas__pressure_gradient_y',
+        'gas__pressure_gradient_z',
+        'gas__density_gradient_magnitude',
+        'gas__density_gradient_x',
+        'gas__density_gradient_y',
+        'gas__density_gradient_z',
+        'index__virial_radius_fraction',
+        'gas__averaged_density',
+      ]);
+      const filtered_field_names: string[] = field_names.filter((fname) => {
+        return !blacklist.has(fname);
+      });
+      post('set-fields', { fields: filtered_field_names });
       post('loaded', {});
     }
 
-    if (cmd == 'plotQuadMesh') {
+    if (cmd == 'getQuadTree') {
       const { field, axis } = e.data;
       const getQuadCode = `
 field_js = "${field}"
