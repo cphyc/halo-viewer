@@ -2,27 +2,40 @@
 import { useEffect, useRef, useState } from 'react';
 import QuadtreeViewer from './QuadtreeViewer';
 import { QuadData } from '../types';
-import { resolve } from '../api';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
+// Shared worker singleton
+let sharedWorker: Worker | null = null;
+
+const defaultWheelUrls = [
+  'https://files.pythonhosted.org/packages/e0/1f/f370c32eab50b45271c4929665caeb49e55ed6ae14706595f2b192825148/pyneb-1.1.28-py3-none-any.whl',
+  `${BASE}/wheels/yt_experiments-0.3.0-cp312-cp312-pyodide_2024_0_wasm32.whl`,
+  `${BASE}/wheels/yt_derived_fields-0.1.0-py3-none-any.whl`,
+  'scipy',
+];
+
+function getSharedWorker(): Worker {
+  if (!sharedWorker) {
+    console.log('CutoutRunner: creating shared pyodide worker');
+    sharedWorker = new Worker(new URL('../pyodide/pyWorker.ts', import.meta.url), {
+      type: 'classic',
+    });
+  }
+  sharedWorker.postMessage({ cmd: 'initialize', wheelUrls: defaultWheelUrls });
+  return sharedWorker;
+}
+
 export default function CutoutRunner({
   cutoutUrl,
-  wheelUrls = [
-    'https://files.pythonhosted.org/packages/e0/1f/f370c32eab50b45271c4929665caeb49e55ed6ae14706595f2b192825148/pyneb-1.1.28-py3-none-any.whl',
-    `${BASE}/wheels/yt_experiments-0.3.0-cp312-cp312-pyodide_2024_0_wasm32.whl`,
-    `${BASE}/wheels/yt_derived_fields-0.1.0-py3-none-any.whl`,
-    'scipy',
-  ],
   pyCode = '',
 }: {
   cutoutUrl: string;
-  wheelUrls?: string[]; // relative or absolute URLs to your .whl files
   pyCode?: string; // your Python code (blank by default)
 }) {
-  const workerRef = useRef<Worker | null>(null);
   const [status, setStatus] = useState<string>('idle');
   const [loaded, setLoaded] = useState<boolean>(false);
+  const [initialized, setInitialized] = useState<boolean>(false);
   const [img, setImg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [field_list, setFields] = useState<string[] | null>(null);
@@ -34,18 +47,24 @@ export default function CutoutRunner({
   const [quadData, setQuadData] = useState<QuadData | null>(null);
 
   useEffect(() => {
-    const w = new Worker(new URL('../pyodide/pyWorker.ts', import.meta.url), { type: 'classic' });
-    workerRef.current = w;
-    w.onmessage = async (e: MessageEvent) => {
+    const w = getSharedWorker();
+
+    const handleMessage = async (e: MessageEvent) => {
       const { type, ...rest } = e.data || {};
       if (type === 'status') setStatus(rest.status);
       if (type === 'error') {
         setStatus('error');
         setError(rest.error);
       }
-      if (type === 'loaded') setLoaded(true);
+      if (type === 'loaded') {
+        setLoaded(true);
+        setStatus('loaded');
+      }
+      if (type === 'initialized') {
+        setInitialized(rest.value);
+        setStatus('initialized');
+      }
       if (type === 'plotting-done') setStatus('plotting-done');
-      if (type === 'image') setImg(rest.dataUrl);
       if (type === 'set-fields') {
         setFields(rest.fields);
         setField('gas__density');
@@ -70,32 +89,30 @@ export default function CutoutRunner({
         setWidth(rest.width);
       }
     };
+
+    w.postMessage({ cmd: 'isInitialized' });
+
+    w.addEventListener('message', handleMessage);
+
     return () => {
-      w.terminate();
+      w.removeEventListener('message', handleMessage);
     };
   }, []);
+
+  useEffect(plotQuadtree, [field, axis, field]);
 
   async function loadCutout() {
     setStatus('starting');
     setError(null);
-    workerRef.current?.postMessage({ cmd: 'runCutout', cutoutUrl, wheelUrls, pyCode });
-  }
-
-  function plotCutout() {
-    setStatus('starting');
-    setError(null);
-    workerRef.current?.postMessage({
-      cmd: 'plotCutout',
-      field: field,
-      axis: axis,
-      width: width,
-    });
+    getSharedWorker().postMessage({ cmd: 'runCutout', cutoutUrl, pyCode });
+    plotQuadtree();
   }
 
   function plotQuadtree() {
-    setStatus('starting quadtree plot');
+    if (!field || !axis) return;
+    setStatus('plotting');
     setError(null);
-    workerRef.current?.postMessage({
+    getSharedWorker().postMessage({
       cmd: 'plotQuadMesh',
       field: field,
       axis: axis,
@@ -119,7 +136,7 @@ export default function CutoutRunner({
           ))}
         </div>
       )}
-      <button onClick={loadCutout}>Load cutout</button>
+      {initialized && !loaded && <button onClick={loadCutout}>Load cutout</button>}
       {loaded && (
         <div>
           <button onClick={plotQuadtree}>Plot cutout</button>
