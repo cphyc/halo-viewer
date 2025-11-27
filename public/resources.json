@@ -19,6 +19,21 @@
         "key": "data"
       },
       "downloadable": true
+    },
+    {
+      "id": "image",
+      "name": "Images",
+      "type": "2D",
+      "downloadable": true,
+      "pathTemplate": "demo-halos/halos_{haloId}.png",
+      "xAxis": {
+        "label": "arcsec",
+        "unit": "arcsec"
+      },
+      "yAxis": {
+        "label": "arcsec",
+        "unit": "arcsec"
+      }
     }
   ]
 }

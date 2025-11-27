@@ -34,7 +34,7 @@
         },
         "bundle_size": {
           "type": "integer",
-          "description": "Number of object per bundle (for bundled resources). Set to 0 for unbundled resources.",
+          "description": "Number of object per bundle (for bundled resources). Set to 0 for unbundled resources. Only allowed for 1D resources.",
           "default": 0
         },
         "pathTemplate": {
@@ -59,7 +59,25 @@
           "description": "Whether the data can be downloaded"
         }
       },
-      "required": ["id", "name", "type", "pathTemplate"]
+      "required": ["id", "name", "type", "pathTemplate"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["2D", "3D"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "bundle_size": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
     },
     "axis": {
       "type": "object",
