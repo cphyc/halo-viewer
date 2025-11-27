@@ -9,7 +9,8 @@ on the webserver (apart from a static file server).
 - 3D visualization of halo catalogues using [three.js](https://threejs.org/),
 - Display of content of halo catalogues,
 - Display of precomputed data (e.g., images and spectra),
-- Interactive Python environment running in the browser using [Pyodide](https://pyodide.org/en/stable/) and [yt](https://yt-project.org/).
+- Interactive Python environment running in the browser using [Pyodide](https://pyodide.org/en/stable/) and [yt](https://yt-project.org/),
+- SQLite-based halo catalog storage with automatic fallback to ASCII format.
 
 ## Installation
 
@@ -47,6 +48,21 @@ It, however, requires two packages to be shipped as pre-compiled wheels:
   cp wheelhouse/*.whl ../../../public/wheels/
 )
 ```
+
+## Converting Halo Catalogs to SQLite
+
+The viewer supports both ASCII and SQLite database formats for halo catalogs. SQLite provides better performance and smaller file sizes. To convert an existing ASCII catalog:
+
+```bash
+npm run convert-catalog <input.ascii> <output.sqlite>
+```
+
+For example:
+```bash
+npm run convert-catalog public/demo-halos/cutouts/halos_00100.ascii public/demo-halos/cutouts/halos_00100.sqlite
+```
+
+The viewer will automatically try to load the SQLite version first and fall back to ASCII if not available. See `src/db/README.md` for more details.
 
 ## Building the web application
 
