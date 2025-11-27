@@ -105,3 +105,55 @@ python -m http.server
 ```
 
 Don't forget to modify the `.env.local` file to use the same port as the one used by the Python server (default is 8000).
+
+## Configuring Data Resources
+
+The viewer supports dynamic configuration of data resources through a `resources.json` file in the `public/` folder. This allows you to define what data types (1D, 2D, 3D) are available for each halo without modifying the code.
+
+### Resource Configuration
+
+Create or edit `public/resources.json` to define available resources. The schema is defined in `public/resources.schema.json`.
+
+Example configuration (also available as `public/resources.example.json`):
+
+```json
+{
+  "$schema": "./resources.schema.json",
+  "resources": [
+    {
+      "id": "spectrum",
+      "name": "Spectrum",
+      "type": "1D",
+      "bundled": true,
+      "pathTemplate": "demo-halos/spectra/output_00100/halos_{bucketId}.json.gz",
+      "dataKey": "total",
+      "xAxis": {
+        "label": "λ",
+        "unit": "Å",
+        "key": "wavelength"
+      },
+      "yAxis": {
+        "label": "fλ",
+        "unit": "arbitrary units",
+        "key": "data"
+      },
+      "downloadable": true
+    }
+  ]
+}
+```
+
+### Resource Types
+
+- **1D data**: Line plots (e.g., spectra, time series)
+- **2D data**: Images (e.g., projections, slices) - *coming soon*
+- **3D data**: Data cubes (e.g., position-position-velocity) - *coming soon*
+
+### Bundled vs Non-bundled Resources
+
+- **Bundled** (`bundled: true`): Multiple halos stored in a single file. Use `{bucketId}` in `pathTemplate` for bucket-based organization (e.g., `haloId / 1000`).
+- **Non-bundled** (`bundled: false`): One file per halo. Use `{haloId}` in `pathTemplate`.
+
+### Data Download
+
+Each resource card includes a download button that exports the data as JSON. For bundled resources, the data is automatically unbundled to provide only the selected halo's data.
