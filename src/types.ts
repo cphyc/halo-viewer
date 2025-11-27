@@ -30,33 +30,16 @@ export type HaloCatalog = {
   };
 };
 
-// Generic 1D data (replaces SpectrumJSON for bundled format)
-export type Data1DJSON = {
-  // gz-compressed multi-halo format
-  output: string;
-  wavelength: Float64Array;
-  data: {
-    [haloId: string]: {
-      total?: Float64Array;
-      popIII?: Float64Array;
-      popII?: Float64Array;
-      nebc?: Float64Array;
-      two_phot_cool?: Float64Array;
+// TODO: Define proper structure for 1D data JSON
+export type Data1DJSON =
+  | any
+  | {
+      [key: string]: Float64Array;
     };
-  };
-};
 
-// Legacy alias for backward compatibility
-export type SpectrumJSON = Data1DJSON;
-
-export type Manifest = {
-  halos: { id: string; name?: string }[];
-};
-
-// Generic 1D data structure
 export type Data1D = {
-  x: Float64Array | number[]; // x-axis values (e.g., wavelength, time, etc.)
-  y: Float64Array | number[]; // y-axis values (e.g., flux, intensity, etc.)
+  x: Float64Array;
+  y: Float64Array;
 };
 
 export type QuadData = {

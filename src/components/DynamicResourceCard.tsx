@@ -46,19 +46,45 @@ export default function DynamicResourceCard({ halo, resource }: DynamicResourceC
     if (!dataQ.data) return null;
 
     if (resource.type === '1D') {
-      // Handle 1D data
-      if ('wavelength' in dataQ.data && 'data' in dataQ.data) {
-        const haloData = dataQ.data.data[halo.id.toString()];
-        const dataKey = resource.dataKey || 'total';
+      if (!resource.xAxis || !resource.yAxis) {
+        throw new Error(`Resource ${resource.id} is missing required xAxis or yAxis configuration`);
+      }
 
-        if (haloData && haloData[dataKey as keyof typeof haloData]) {
-          return {
-            x: dataQ.data.wavelength,
-            y: haloData[dataKey as keyof typeof haloData] as Float64Array,
-          };
-        }
+      // Handle 1D data
+      if (resource.dataKey === undefined && resource.bundle_size !== 0) {
+        throw new Error(`Resource ${resource.id} is missing dataKey for bundled resource`);
         return null;
       }
+      const haloData = dataQ.data[resource.dataKey || 'data'][halo.id.toString()];
+
+      if (resource.xAxis.key === undefined || resource.yAxis.key === undefined) {
+        throw new Error(`Resource ${resource.id} is missing xAxis.key or yAxis.key`);
+      }
+
+      const xkey = resource.xAxis.key;
+      const ykey = resource.yAxis.key;
+
+      let xData: Float64Array;
+      let yData: Float64Array;
+
+      if (resource.bundle_size > 0) {
+        const globalData = dataQ.data;
+        xData = (
+          xkey in globalData
+            ? globalData[xkey as keyof Data1DJSON]
+            : haloData[xkey as keyof typeof haloData]
+        ) as Float64Array;
+        yData = (
+          ykey in globalData
+            ? globalData[ykey as keyof Data1DJSON]
+            : haloData[ykey as keyof typeof haloData]
+        ) as Float64Array;
+      } else {
+        xData = haloData[xkey as keyof typeof haloData] as Float64Array;
+        yData = haloData[ykey as keyof typeof haloData] as Float64Array;
+      }
+
+      return { x: xData, y: yData };
     }
     return null;
   }, [dataQ.data, halo.id, resource]);

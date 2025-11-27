@@ -7,13 +7,14 @@
   "properties": {
     "resources": {
       "type": "array",
-      "description": "List of available data resources",
+      "description": "List of available data resources. Each resource must have a unique 'id' field.",
       "items": {
         "$ref": "#/definitions/resource"
       }
     }
   },
   "required": ["resources"],
+  "additionalProperties": false,
   "definitions": {
     "resource": {
       "type": "object",
@@ -75,6 +76,32 @@
                 "const": 0
               }
             }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["1D", "2D"]
+              }
+            }
+          },
+          "then": {
+            "required": ["xAxis", "yAxis"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "bundle_size": {
+                "not": {
+                  "const": 0
+                }
+              }
+            }
+          },
+          "then": {
+            "required": ["dataKey"]
           }
         }
       ]

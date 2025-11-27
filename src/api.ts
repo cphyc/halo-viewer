@@ -9,6 +9,7 @@ interface ImportMeta {
 }
 
 import { Data1DJSON, HaloCatalog, HaloCatalogData, ResourcesConfig, ResourceConfig } from './types';
+import { validateResources } from './validation';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -168,12 +169,16 @@ export async function getResourcesConfig(signal?: AbortSignal): Promise<Resource
   }
 
   try {
-    const config = await fetchJSON<ResourcesConfig>('resources.json', signal);
+    const data = await fetchJSON<unknown>('resources.json', signal);
+
+    // Validate the data against the schema
+    const config = validateResources(data);
+
     resourcesConfigCache = config;
     return config;
   } catch (error) {
-    console.warn('Failed to load resources.json, using empty config:', error);
-    return { resources: [] };
+    console.error('Failed to load or validate resources.json:', error);
+    throw error;
   }
 }
 

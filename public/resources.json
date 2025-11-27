@@ -1,5 +1,4 @@
 {
-  "$schema": "./resources.schema.json",
   "resources": [
     {
       "id": "spectrum",
@@ -7,7 +6,7 @@
       "type": "1D",
       "bundle_size": 1000,
       "pathTemplate": "demo-halos/spectra/output_00100/halos_{bucketId}.json.gz",
-      "dataKey": "total",
+      "dataKey": "data",
       "xAxis": {
         "label": "λ",
         "unit": "Å",
@@ -16,24 +15,44 @@
       "yAxis": {
         "label": "fλ",
         "unit": "arbitrary units",
-        "key": "data"
+        "key": "total"
       },
       "downloadable": true
     },
     {
-      "id": "image",
-      "name": "Images",
-      "type": "2D",
-      "downloadable": true,
-      "pathTemplate": "demo-halos/halos_{haloId}.png",
+      "id": "nebc",
+      "name": "Spectra (nebular continuum)",
+      "type": "1D",
+      "bundle_size": 1000,
+      "pathTemplate": "demo-halos/spectra/output_00100/halos_{bucketId}.json.gz",
+      "dataKey": "data",
       "xAxis": {
-        "label": "arcsec",
-        "unit": "arcsec"
+        "label": "λ",
+        "unit": "Å",
+        "key": "wavelength"
       },
       "yAxis": {
-        "label": "arcsec",
-        "unit": "arcsec"
-      }
+        "label": "fλ",
+        "unit": "arbitrary units",
+        "key": "nebc"
+      },
+      "downloadable": true
+    },
+    {
+      "id": "mock",
+      "name": "Mock images",
+      "type": "2D",
+      "bundle_size": 0,
+      "pathTemplate": "demo-halos/halos_{haloId}.png",
+      "xAxis": {
+        "label": "x",
+        "unit": "kpc"
+      },
+      "yAxis": {
+        "label": "y",
+        "unit": "kpc"
+      },
+      "downloadable": true
     }
   ]
 }
