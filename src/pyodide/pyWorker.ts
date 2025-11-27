@@ -75,6 +75,7 @@ self.onmessage = async (e: MessageEvent) => {
 import numpy as np
 import yt
 from yt_derived_fields.cutouts.loader import load_cutout
+from yt_derived_fields.megatron_derived_fields.chemistry_derived_fields import create_chemistry_derived_fields
 `;
 
       // After wheels are installed, import necessary modules
@@ -100,6 +101,15 @@ from yt_derived_fields.cutouts.loader import load_cutout
       const loadDatasetCode = `
 yt.mylog.error("load_cutout")
 ds = load_cutout("/cutout.bin")
+
+# Create missing fields
+def _CO_fraction(field, data):
+  # FIXME: not correct
+  return data["gas", "carbon_monoxide_number_density"] / data["gas", "number_density"]
+
+ds.add_field(("gas", "CO_fraction"), function=_CO_fraction, units="", sampling_type="cell")
+
+create_chemistry_derived_fields(ds)
 
 ad = ds.all_data().exclude_nan(("gas", "density"))
 
