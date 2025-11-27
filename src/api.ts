@@ -8,7 +8,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-import { SpectrumJSON, HaloCatalog, HaloCatalogData } from './types';
+import { Data1DJSON, HaloCatalog, HaloCatalogData, ResourcesConfig, ResourceConfig } from './types';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -29,51 +29,8 @@ export async function fetchJSON<T>(path: string, signal?: AbortSignal): Promise<
   return res.json() as Promise<T>;
 }
 
-export function spectrumPath(id: number) {
-  // If a path is given, return as-is. If an ID is provided, map to default demo path.
-  const bucket_id = Math.floor(id / 1000);
-  return `demo-halos/spectra/output_00100/halos_${bucket_id}.json.gz`;
-}
-
 export async function getHalo(id: string, signal?: AbortSignal): Promise<HaloCatalogData | null> {
   return getHaloFromCatalog(parseInt(id), signal);
-}
-
-export async function getSpectrum(
-  specPath: string,
-  haloId: number,
-  signal?: AbortSignal
-): Promise<SpectrumJSON> {
-  // Check if it's a gz-compressed file
-  const response = await fetch(resolve(specPath), { signal });
-  if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${specPath}`);
-
-  const jsonData = (await response.json()) as SpectrumJSON;
-
-  // Extract data for the specific halo ID
-  const haloData = jsonData.data[haloId.toString()];
-  if (!haloData) {
-    throw new Error(`Halo ${haloId} not found in spectrum file`);
-  }
-
-  // Convert arrays to Float64Arrays
-  const convertedHaloData: any = {};
-  for (const [key, value] of Object.entries(haloData)) {
-    if (Array.isArray(value)) {
-      convertedHaloData[key] = Float64Array.from(value);
-    } else {
-      convertedHaloData[key] = value;
-    }
-  }
-
-  // Return in the format with wavelength and data for this specific halo
-  return {
-    output: jsonData.output,
-    wavelength: Float64Array.from(jsonData.wavelength),
-    data: {
-      [haloId.toString()]: convertedHaloData,
-    },
-  };
 }
 
 export async function getHalos(
@@ -200,4 +157,85 @@ export async function getHaloFromCatalog(
   console.log('Fetching halo from catalog:', haloId);
   const catalog = await getHalos('demo-halos/cutouts/halos_00100.ascii', signal);
   return catalog.halos.find((h) => h.id === haloId) || null;
+}
+
+// Resources configuration cache
+let resourcesConfigCache: ResourcesConfig | null = null;
+
+export async function getResourcesConfig(signal?: AbortSignal): Promise<ResourcesConfig> {
+  if (resourcesConfigCache) {
+    return resourcesConfigCache;
+  }
+
+  try {
+    const config = await fetchJSON<ResourcesConfig>('resources.json', signal);
+    resourcesConfigCache = config;
+    return config;
+  } catch (error) {
+    console.warn('Failed to load resources.json, using empty config:', error);
+    return { resources: [] };
+  }
+}
+
+// Generic function to get data path for a resource
+export function getResourcePath(resource: ResourceConfig, haloId: number): string {
+  if (resource.bundle_size === 0) {
+    // Unbundled: one file per halo
+    return resource.pathTemplate.replace('{haloId}', haloId.toString().padStart(6, '0'));
+  } else {
+    // Bundled: multiple halos per file
+    const bucketId = Math.floor(haloId / resource.bundle_size);
+    return resource.pathTemplate
+      .replace('{haloId}', haloId.toString().padStart(6, '0'))
+      .replace('{bucketId}', bucketId.toString());
+  }
+}
+
+// Generic function to load 1D data from a resource
+export async function getData1D(
+  resource: ResourceConfig,
+  haloId: number,
+  signal?: AbortSignal
+): Promise<Data1DJSON> {
+  const path = getResourcePath(resource, haloId);
+
+  const response = await fetch(resolve(path), { signal });
+  if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${path}`);
+
+  const jsonData = (await response.json()) as Data1DJSON;
+
+  if (resource.bundle_size > 0) {
+    // Extract data for the specific halo ID
+    const haloData = jsonData.data[haloId.toString()];
+    if (!haloData) {
+      throw new Error(`Halo ${haloId} not found in bundled resource file`);
+    }
+
+    // Convert arrays to Float64Arrays
+    const convertedHaloData: any = {};
+    for (const [key, value] of Object.entries(haloData)) {
+      if (Array.isArray(value)) {
+        convertedHaloData[key] = Float64Array.from(value);
+      } else {
+        convertedHaloData[key] = value;
+      }
+    }
+
+    // Return in the format with wavelength and data for this specific halo
+    return {
+      output: jsonData.output,
+      wavelength: Float64Array.from(jsonData.wavelength),
+      data: {
+        [haloId.toString()]: convertedHaloData,
+      },
+    };
+  } else {
+    // Non-bundled: entire file is for this halo
+    // Convert arrays to Float64Arrays
+    const convertedData: any = { ...jsonData };
+    if (Array.isArray(jsonData.wavelength)) {
+      convertedData.wavelength = Float64Array.from(jsonData.wavelength);
+    }
+    return convertedData;
+  }
 }

@@ -1,5 +1,4 @@
 /* eslint-disable no-restricted-globals */
-// Classic worker that loads Pyodide from CDN, fetches spectrum JSON or binary cutouts,
 // renders matplotlib PNGs, and can run custom Python code on a cutout using a local wheel.
 
 let pyodide: any = null;
@@ -46,61 +45,6 @@ async function ensureWheel(url: string) {
 self.onmessage = async (e: MessageEvent) => {
   const { cmd } = e.data || {};
   try {
-    if (cmd === 'plot') {
-      const { specUrl, width = 800, height = 400 } = e.data;
-      await ensurePyodide();
-
-      post('status', { status: 'fetching spectrum' });
-      const res = await fetch(specUrl, { cache: 'force-cache' });
-      if (!res.ok) throw new Error(`Fetch ${res.status}: ${specUrl}`);
-      const spec = await res.json();
-
-      const lambdaArr: number[] = Array.isArray(spec.lambda)
-        ? spec.lambda
-        : (spec.pairs || []).map((p: [number, number]) => p[0]);
-      const fluxArr: number[] = Array.isArray(spec.flux)
-        ? spec.flux
-        : (spec.pairs || []).map((p: [number, number]) => p[1]);
-
-      pyodide.globals.set('lambda_js', lambdaArr);
-      pyodide.globals.set('flux_js', fluxArr);
-      pyodide.globals.set('W', width);
-      pyodide.globals.set('H', height);
-
-      post('status', { status: 'plotting with matplotlib' });
-      await pyodide.loadPackage(['matplotlib']);
-      const py = `
-import io
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
-lam = np.array(lambda_js, dtype=float)
-f = np.array(flux_js, dtype=float)
-fig = plt.figure(figsize=(W/100, H/100), dpi=100)
-ax = fig.add_subplot(111)
-ax.plot(lam, f, linewidth=1.0)
-ax.set_xlabel('Wavelength')
-ax.set_ylabel('Flux')
-ax.grid(True, alpha=0.3)
-fig.tight_layout()
-buf = io.BytesIO()
-fig.savefig(buf, format='png')
-plt.close(fig)
-png_bytes = buf.getvalue()
-`;
-      const png = await pyodide.runPythonAsync(
-        py +
-          `
-png_bytes`
-      );
-      const u8 = png.toJs() as Uint8Array;
-      const dataUrl = 'data:image/png;base64,' + toBase64(u8);
-      post('image', { dataUrl });
-      return;
-    }
-
     if (cmd === 'runCutout') {
       const { cutoutUrl, wheelUrls, pyCode = '' } = e.data;
       const fullUrl = new URL(cutoutUrl, self.location.href).href;

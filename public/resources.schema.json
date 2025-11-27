@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/cphyc/halo-viewer/resources.schema.json",
+  "title": "Halo Viewer Resources Schema",
+  "description": "Schema for defining available data resources in the Halo Viewer",
+  "type": "object",
+  "properties": {
+    "resources": {
+      "type": "array",
+      "description": "List of available data resources",
+      "items": {
+        "$ref": "#/definitions/resource"
+      }
+    }
+  },
+  "required": ["resources"],
+  "definitions": {
+    "resource": {
+      "type": "object",
+      "description": "A data resource (1D, 2D, or 3D data)",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this resource type"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name for this resource"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["1D", "2D", "3D"],
+          "description": "Dimensionality of the data"
+        },
+        "bundle_size": {
+          "type": "integer",
+          "description": "Number of object per bundle (for bundled resources). Set to 0 for unbundled resources.",
+          "default": 0
+        },
+        "pathTemplate": {
+          "type": "string",
+          "description": "Path template for accessing the data. Use {haloId} for halo ID, {bucketId} for bucket ID (haloId / 1000)"
+        },
+        "dataKey": {
+          "type": "string",
+          "description": "Key to access the data in the JSON (for bundled resources)"
+        },
+        "xAxis": {
+          "$ref": "#/definitions/axis",
+          "description": "X-axis configuration (for 1D and 2D data)"
+        },
+        "yAxis": {
+          "$ref": "#/definitions/axis",
+          "description": "Y-axis configuration (for 1D data)"
+        },
+        "downloadable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the data can be downloaded"
+        }
+      },
+      "required": ["id", "name", "type", "pathTemplate"]
+    },
+    "axis": {
+      "type": "object",
+      "description": "Axis configuration for plotting",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Label for the axis (e.g., 'λ', 'fλ')"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit for the axis (e.g., 'Å', 'arbitrary units')"
+        },
+        "key": {
+          "type": "string",
+          "description": "Key in the data object for this axis"
+        }
+      },
+      "required": ["label", "unit"]
+    }
+  }
+}
