@@ -135,16 +135,26 @@ ad = ds.all_data().exclude_nan(("gas", "density"))
     }
 
     if (cmd == 'getQuadTree') {
-      const { field, axis } = e.data;
+      const { field, axis, operation } = e.data;
       const getQuadCode = `
 field_js = "${field}"
 field = tuple(field_js.split("__"))
-
-# Create quad mesh plot
-proj = ds.proj(field, "${axis}", data_source=ad, weight_field=("gas", "density"))
+op = "${operation}"
 center = list(ds.domain_center.value)
-
 iaxis = "xyz".index("${axis}")
+axis = "${axis}"
+
+match op:
+  case "projection-weighted":
+    proj = ds.proj(field, axis, data_source=ad, weight_field=("gas", "density"))
+  case "projection":
+    proj = ds.proj(field, axis, data_source=ad)
+  case "slice":
+    proj = ds.slice(axis, 0.5, data_source=ad)
+  case _:
+    raise ValueError(f"Unknown projection operation: {op}")
+
+
 center = (*center[:iaxis], *center[iaxis+1:])
 width = float(max(
   (ad["x"].max() - ad["x"].min()).to("code_length").value,

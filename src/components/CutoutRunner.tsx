@@ -26,6 +26,12 @@ function getSharedWorker(): Worker {
   return sharedWorker;
 }
 
+enum ProjectionOperation {
+  ProjectionWeighted = 'projection-weighted',
+  Projection = 'projection',
+  Slice = 'slice',
+}
+
 export default function CutoutRunner({
   cutoutUrl,
   pyCode = '',
@@ -41,6 +47,10 @@ export default function CutoutRunner({
   const [field_list, setFields] = useState<string[] | null>(null);
   const [field, setField] = useState<string>('');
   const [axis, setAxis] = useState<string>('x');
+  const [operation, setOperation] = useState<ProjectionOperation>(
+    ProjectionOperation.ProjectionWeighted
+  );
+  const [weightField, setWeightField] = useState<string | null>(null);
   const [width, setWidth] = useState<number>(1);
   const [center, setCenter] = useState<[number, number]>([0.5, 0.5]);
 
@@ -99,7 +109,7 @@ export default function CutoutRunner({
     };
   }, []);
 
-  useEffect(getQuadTree, [field, axis, field]);
+  useEffect(getQuadTree, [field, axis, field, operation]);
 
   async function loadCutout() {
     setStatus('starting');
@@ -116,6 +126,7 @@ export default function CutoutRunner({
       cmd: 'getQuadTree',
       field: field,
       axis: axis,
+      operation: operation as string,
     });
   }
 
@@ -158,6 +169,18 @@ export default function CutoutRunner({
               <option value="x">x</option>
               <option value="y">y</option>
               <option value="z">z</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <select
+              value={operation}
+              onChange={(e) => setOperation(e.target.value as ProjectionOperation)}
+            >
+              {Object.values(ProjectionOperation).map((op) => (
+                <option key={op} value={op}>
+                  {op}
+                </option>
+              ))}
             </select>
           </div>
           <div style={{ marginBottom: 8 }}>
