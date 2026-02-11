@@ -1,6 +1,8 @@
 /* eslint-disable no-restricted-globals */
 // renders matplotlib PNGs, and can run custom Python code on a cutout using a local wheel.
 
+import { loadPyodide } from 'pyodide';
+
 let pyodide: any = null;
 let wheelInstalled: Record<string, boolean> = {};
 let initialized = false;
@@ -14,9 +16,9 @@ async function ensurePyodide() {
   if (pyodide) return pyodide;
   post('status', { status: 'loading pyodide' });
   // @ts-ignore
-  self.importScripts('https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js');
+  const indexURL = new URL('./', self.location).href;
   // @ts-ignore
-  pyodide = await self.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' });
+  pyodide = await loadPyodide({ indexURL });
   return pyodide;
 }
 

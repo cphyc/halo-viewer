@@ -19,7 +19,7 @@ function getSharedWorker(): Worker {
   if (!sharedWorker) {
     console.log('CutoutRunner: creating shared pyodide worker');
     sharedWorker = new Worker(new URL('../pyodide/pyWorker.ts', import.meta.url), {
-      type: 'classic',
+      type: 'module',
     });
   }
   sharedWorker.postMessage({ cmd: 'initialize', wheelUrls: defaultWheelUrls });
