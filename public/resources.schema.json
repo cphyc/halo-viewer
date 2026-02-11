@@ -30,8 +30,8 @@
         },
         "type": {
           "type": "string",
-          "enum": ["1D", "2D", "3D"],
-          "description": "Dimensionality of the data"
+          "enum": ["1D", "2D", "3D", "metadata"],
+          "description": "Type of the resource (1D, 2D, 3D for data resources, 'metadata' for metadata resources that provide values for path construction)"
         },
         "bucket_size": {
           "type": "integer",
@@ -44,7 +44,7 @@
         },
         "dataKey": {
           "type": "string",
-          "description": "Key to access the data in the JSON (for bundled resources)"
+          "description": "Key to access the data in the JSON (for bucketed resources)"
         },
         "xAxis": {
           "$ref": "#/definitions/axis",
@@ -68,7 +68,7 @@
           "default": []
         }
       },
-      "required": ["id", "name", "type", "pathTemplate", "requires"],
+      "required": ["id", "name", "type"],
       "allOf": [
         {
           "if": {
@@ -80,7 +80,7 @@
           },
           "then": {
             "properties": {
-              "bundle_size": {
+              "bucket_size": {
                 "const": 0
               }
             }
@@ -100,13 +100,24 @@
         },
         {
           "if": {
-            "properties": {
-              "bundle_size": {
-                "not": {
-                  "const": 0
+            "allOf": [
+              {
+                "properties": {
+                  "type": {
+                    "enum": ["1D", "2D", "3D"]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "bucket_size": {
+                    "not": {
+                      "const": 0
+                    }
+                  }
                 }
               }
-            }
+            ]
           },
           "then": {
             "required": ["dataKey"]

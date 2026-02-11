@@ -16,7 +16,8 @@ async function ensurePyodide() {
   if (pyodide) return pyodide;
   post('status', { status: 'loading pyodide' });
   // @ts-ignore
-  const indexURL = new URL('./', self.location).href;
+  const base = import.meta.env.BASE_URL || '/';
+  const indexURL = new URL('assets/', new URL(base, self.location.origin)).href;
   // @ts-ignore
   pyodide = await loadPyodide({ indexURL });
   return pyodide;

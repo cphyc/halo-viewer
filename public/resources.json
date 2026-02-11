@@ -3,12 +3,14 @@
     {
       "id": "simulation_name",
       "name": "Simulation Name",
-      "type": "metadata"
+      "type": "metadata",
+      "pathTemplate": "data/simulations.json"
     },
     {
       "id": "output_id",
       "name": "Output ID",
       "type": "metadata",
+      "pathTemplate": "data/{simulation_name}/outputs.json",
       "requires": ["simulation_name"]
     },
     {
@@ -27,7 +29,7 @@
       "id": "spectrum",
       "name": "Spectra",
       "type": "1D",
-      "bundle_size": 1000,
+      "bucket_size": 1000,
       "pathTemplate": "data/spectra/{simulation_name}/output_{output_id}/halos_{bucketId}.json.gz",
       "dataKey": "data",
       "xAxis": {
@@ -47,7 +49,7 @@
       "id": "nebc",
       "name": "Spectra (nebular continuum)",
       "type": "1D",
-      "bundle_size": 1000,
+      "bucket_size": 1000,
       "pathTemplate": "data/spectra/{simulation_name}/output_{output_id}/halos_{bucketId}.json.gz",
       "dataKey": "data",
       "xAxis": {
@@ -67,7 +69,7 @@
       "id": "mock",
       "name": "Mock images",
       "type": "2D",
-      "bundle_size": 0,
+      "bucket_size": 0,
       "pathTemplate": "data/mocks/{simulation_name}/output_{output_id}/halos_{haloId}.png",
       "xAxis": {
         "label": "x",
