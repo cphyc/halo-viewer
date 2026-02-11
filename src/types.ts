@@ -60,13 +60,14 @@ export type AxisConfig = {
 export type ResourceConfig = {
   id: string;
   name: string;
-  type: '1D' | '2D' | '3D';
-  bundle_size: number;
+  type: '1D' | '2D' | '3D' | 'metadata';
+  bucket_size: number;
   pathTemplate: string;
   dataKey?: string;
   xAxis?: AxisConfig;
   yAxis?: AxisConfig;
   downloadable?: boolean;
+  requires?: string[]; // List of required resource IDs for constructing the path
 };
 
 export type ResourcesConfig = {

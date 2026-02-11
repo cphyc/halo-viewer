@@ -1,11 +1,34 @@
 {
   "resources": [
     {
+      "id": "simulation_name",
+      "name": "Simulation Name",
+      "type": "metadata"
+    },
+    {
+      "id": "output_id",
+      "name": "Output ID",
+      "type": "metadata",
+      "requires": ["simulation_name"]
+    },
+    {
+      "id": "halo_id",
+      "name": "Halo ID",
+      "type": "metadata",
+      "requires": ["simulation_name", "output_id"]
+    },
+    {
+      "id": "bucket_id",
+      "name": "Bucket ID of a halo (e.g., for grouping halos into buckets of 1000)",
+      "type": "metadata",
+      "requires": ["halo_id"]
+    },
+    {
       "id": "spectrum",
       "name": "Spectra",
       "type": "1D",
       "bundle_size": 1000,
-      "pathTemplate": "demo-halos/spectra/output_00100/halos_{bucketId}.json.gz",
+      "pathTemplate": "data/spectra/{simulation_name}/output_{output_id}/halos_{bucketId}.json.gz",
       "dataKey": "data",
       "xAxis": {
         "label": "λ",
@@ -17,14 +40,15 @@
         "unit": "arbitrary units",
         "key": "total"
       },
-      "downloadable": true
+      "downloadable": true,
+      "requires": ["simulation_name", "output_id", "halo_id"]
     },
     {
       "id": "nebc",
       "name": "Spectra (nebular continuum)",
       "type": "1D",
       "bundle_size": 1000,
-      "pathTemplate": "demo-halos/spectra/output_00100/halos_{bucketId}.json.gz",
+      "pathTemplate": "data/spectra/{simulation_name}/output_{output_id}/halos_{bucketId}.json.gz",
       "dataKey": "data",
       "xAxis": {
         "label": "λ",
@@ -36,14 +60,15 @@
         "unit": "arbitrary units",
         "key": "nebc"
       },
-      "downloadable": true
+      "downloadable": true,
+      "requires": ["simulation_name", "output_id", "halo_id"]
     },
     {
       "id": "mock",
       "name": "Mock images",
       "type": "2D",
       "bundle_size": 0,
-      "pathTemplate": "demo-halos/halos_{haloId}.png",
+      "pathTemplate": "data/mocks/{simulation_name}/output_{output_id}/halos_{haloId}.png",
       "xAxis": {
         "label": "x",
         "unit": "kpc"
@@ -52,7 +77,8 @@
         "label": "y",
         "unit": "kpc"
       },
-      "downloadable": true
+      "downloadable": true,
+      "requires": ["simulation_name", "output_id", "halo_id"]
     }
   ]
 }

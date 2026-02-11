@@ -51,7 +51,7 @@ export default function DynamicResourceCard({ halo, resource }: DynamicResourceC
       }
 
       // Handle 1D data
-      if (resource.dataKey === undefined && resource.bundle_size !== 0) {
+      if (resource.dataKey === undefined && resource.bucket_size !== 0) {
         throw new Error(`Resource ${resource.id} is missing dataKey for bundled resource`);
         return null;
       }
@@ -67,7 +67,7 @@ export default function DynamicResourceCard({ halo, resource }: DynamicResourceC
       let xData: Float64Array;
       let yData: Float64Array;
 
-      if (resource.bundle_size > 0) {
+      if (resource.bucket_size > 0) {
         const globalData = dataQ.data;
         xData = (
           xkey in globalData

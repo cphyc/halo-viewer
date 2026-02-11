@@ -33,9 +33,9 @@
           "enum": ["1D", "2D", "3D"],
           "description": "Dimensionality of the data"
         },
-        "bundle_size": {
+        "bucket_size": {
           "type": "integer",
-          "description": "Number of object per bundle (for bundled resources). Set to 0 for unbundled resources. Only allowed for 1D resources.",
+          "description": "Number of object per bucket (for bucketed resources). Set to 0 for unbucketed resources. Only allowed for 1D resources.",
           "default": 0
         },
         "pathTemplate": {
@@ -58,9 +58,17 @@
           "type": "boolean",
           "default": true,
           "description": "Whether the data can be downloaded"
+        },
+        "requires": {
+          "type": "array",
+          "description": "List of other resource IDs that this resource depends on",
+          "items": {
+            "type": "string"
+          },
+          "default": []
         }
       },
-      "required": ["id", "name", "type", "pathTemplate"],
+      "required": ["id", "name", "type", "pathTemplate", "requires"],
       "allOf": [
         {
           "if": {

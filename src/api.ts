@@ -184,12 +184,12 @@ export async function getResourcesConfig(signal?: AbortSignal): Promise<Resource
 
 // Generic function to get data path for a resource
 export function getResourcePath(resource: ResourceConfig, haloId: number): string {
-  if (resource.bundle_size === 0) {
+  if (resource.bucket_size === 0) {
     // Unbundled: one file per halo
     return resource.pathTemplate.replace('{haloId}', haloId.toString().padStart(6, '0'));
   } else {
     // Bundled: multiple halos per file
-    const bucketId = Math.floor(haloId / resource.bundle_size);
+    const bucketId = Math.floor(haloId / resource.bucket_size);
     return resource.pathTemplate
       .replace('{haloId}', haloId.toString().padStart(6, '0'))
       .replace('{bucketId}', bucketId.toString());
@@ -209,7 +209,7 @@ export async function getData1D(
 
   const jsonData = (await response.json()) as Data1DJSON;
 
-  if (resource.bundle_size > 0) {
+  if (resource.bucket_size > 0) {
     // Extract data for the specific halo ID
     const haloData = jsonData.data[haloId.toString()];
     if (!haloData) {
