@@ -7,14 +7,12 @@ export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
 // Shared worker singleton
 let sharedWorker: Worker | null = null;
-
 const defaultWheelUrls = [
-  'https://files.pythonhosted.org/packages/e0/1f/f370c32eab50b45271c4929665caeb49e55ed6ae14706595f2b192825148/pyneb-1.1.28-py3-none-any.whl',
-  `${BASE}/wheels/yt_experiments-0.3.0-cp312-cp312-pyodide_2024_0_wasm32.whl`,
+  `${BASE}/wheels/pyneb-1.1.28-py3-none-any.whl`,
+  `${BASE}/wheels/yt_experiments-0.3.0-cp313-cp313-pyodide_2025_0_wasm32.whl`,
   `${BASE}/wheels/yt_derived_fields-0.1.0-py3-none-any.whl`,
   'scipy',
 ];
-
 function getSharedWorker(): Worker {
   if (!sharedWorker) {
     console.log('CutoutRunner: creating shared pyodide worker');

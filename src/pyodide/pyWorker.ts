@@ -16,22 +16,10 @@ async function ensurePyodide() {
   if (pyodide) return pyodide;
   post('status', { status: 'loading pyodide' });
   // @ts-ignore
-  const base = import.meta.env.BASE_URL || '/';
-  const indexURL = new URL('assets/', new URL(base, self.location.origin)).href;
-  // @ts-ignore
-  pyodide = await loadPyodide({ indexURL });
+  // Use CDN for pyodide packages - the npm package only includes core files
+  pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.29.3/full/' });
   return pyodide;
 }
-
-// async function ensureWheel(url: string) {
-//   if (wheelInstalled[url]) return;
-//   post('status', { status: `installing ${url}` });
-//   console.log(`THERE with url ${url}`);
-//   const micropip = pyodide.pyimport('micropip');
-//   // Install from URL (should point to a pyodide-compatible wheel)
-//   await micropip.install(url);
-//   wheelInstalled[url] = true;
-// }
 
 // @ts-ignore
 self.onmessage = async (e: MessageEvent) => {
