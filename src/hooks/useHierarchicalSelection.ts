@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { StructureConfig, StructureOption, SelectionState, ResourcesConfig } from '../types';
 import { getStructureOptions, evaluateDerivedValue } from '../api';
 import { getOrderedStructure } from '../utils/resourceFilters';
+import { useUrlState } from './useUrlState';
 
 export function useHierarchicalSelection(config: ResourcesConfig | undefined) {
   const [selections, setSelections] = useState<SelectionState>({});
@@ -12,6 +13,9 @@ export function useHierarchicalSelection(config: ResourcesConfig | undefined) {
     if (!config) return [];
     return getOrderedStructure(config.structure);
   }, [config]);
+
+  // Sync with URL (pass structure to exclude derived values)
+  useUrlState(selections, setSelections, orderedStructure);
 
   // Update derived values when selections change
   useEffect(() => {
