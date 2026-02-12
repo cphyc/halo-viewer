@@ -33,7 +33,7 @@
           "sortable": true,
           "defaultSort": "desc"
         },
-        { "key": "rvirs", "label": "$R_{\\mathrm{vir}}$ (Mpc)", "sortable": true },
+        { "key": "rvirs", "label": "$R_{\\mathrm{vir}}$ ($\\mathrm{Mpc}$)", "sortable": true },
         { "key": "positions_x", "label": "$x$ (Mpc)", "sortable": true },
         { "key": "positions_y", "label": "$y$ (Mpc)", "sortable": true },
         { "key": "positions_z", "label": "$z$ (Mpc)", "sortable": true }

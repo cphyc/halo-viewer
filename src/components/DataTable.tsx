@@ -22,6 +22,8 @@ export interface DataTableProps<TData> {
   enableSorting?: boolean;
   enableFiltering?: boolean;
   maxHeight?: string;
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
 }
 
 export default function DataTable<TData>({
@@ -33,8 +35,14 @@ export default function DataTable<TData>({
   enableSorting = true,
   enableFiltering = true,
   maxHeight = '400px',
+  sorting: externalSorting,
+  onSortingChange: externalOnSortingChange,
 }: DataTableProps<TData>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // Use controlled sorting if provided, otherwise internal state
+  const [internalSorting, setInternalSorting] = useState<SortingState>([]);
+  const sorting = externalSorting !== undefined ? externalSorting : internalSorting;
+  const setSorting = externalOnSortingChange || setInternalSorting;
+
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnWidths, setColumnWidths] = useState<number[]>([]);
   const headerRef = useRef<HTMLTableSectionElement>(null);
@@ -46,7 +54,7 @@ export default function DataTable<TData>({
       sorting,
       globalFilter,
     },
-    onSortingChange: setSorting,
+    onSortingChange: setSorting as any,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
@@ -147,14 +155,12 @@ export default function DataTable<TData>({
                         const headerContent = header.column.columnDef.header;
                         if (typeof headerContent === 'string') {
                           if (hasLatex(headerContent)) {
-                            console.log('Rendering LaTeX header:', headerContent);
                             return (
                               <span
                                 dangerouslySetInnerHTML={{ __html: renderLatex(headerContent) }}
                               />
                             );
                           }
-                          console.log('Plain text header:', headerContent);
                           return headerContent;
                         }
                         return flexRender(headerContent, header.getContext());

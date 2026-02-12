@@ -34,10 +34,11 @@ export function renderLatex(text: string): string {
 /**
  * Check if a string contains LaTeX syntax
  * @param s String to check
- * @returns true if string contains LaTeX commands (backslash followed by letters)
+ * @returns true if string contains LaTeX commands or $ delimiters
  */
 export function hasLatex(s: string): boolean {
-  return /\\[a-zA-Z]+/.test(s);
+  // Check for dollar signs (LaTeX delimiters) or backslash commands
+  return /\$/.test(s) || /\\[a-zA-Z]+/.test(s);
 }
 
 /**
