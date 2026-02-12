@@ -8,6 +8,9 @@ export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 // Shared worker singleton
 let sharedWorker: Worker | null = null;
 const defaultWheelUrls = [
+  `${BASE}/wheels/roman-5.2-py3-none-any.whl`,
+  `${BASE}/wheels/pooch-1.9.0-py3-none-any.whl`,
+  `${BASE}/wheels/ChiantiPy-0.15.2-py3-none-any.whl`,
   `${BASE}/wheels/pyneb-1.1.28-py3-none-any.whl`,
   `${BASE}/wheels/yt_experiments-0.3.0-cp313-cp313-pyodide_2025_0_wasm32.whl`,
   `${BASE}/wheels/yt_derived_fields-0.1.0-py3-none-any.whl`,
