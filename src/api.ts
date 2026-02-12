@@ -8,8 +8,18 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-import { Data1DJSON, HaloCatalog, HaloCatalogData, ResourcesConfig, ResourceConfig } from './types';
+import {
+  Data1DJSON,
+  HaloCatalog,
+  HaloCatalogData,
+  ResourcesConfig,
+  ResourceConfig,
+  StructureConfig,
+  StructureOption,
+  SelectionState,
+} from './types';
 import { validateResources } from './validation';
+import { parseData } from './parsers';
 
 export const BASE = import.meta.env.VITE_DATA_BASE_URL as string | undefined;
 
@@ -180,36 +190,107 @@ export async function getResourcesConfig(signal?: AbortSignal): Promise<Resource
   }
 }
 
-// Generic function to get data path for a resource
-export function getResourcePath(resource: ResourceConfig, haloId: number): string {
-  if (resource.bucket_size === 0) {
-    // Unbundled: one file per halo
-    return resource.pathTemplate.replace('{haloId}', haloId.toString().padStart(6, '0'));
-  } else {
-    // Bundled: multiple halos per file
-    const bucketId = Math.floor(haloId / resource.bucket_size);
-    return resource.pathTemplate
-      .replace('{haloId}', haloId.toString().padStart(6, '0'))
-      .replace('{bucketId}', bucketId.toString());
+// Evaluate derived value from expression
+export function evaluateDerivedValue(
+  expression: string,
+  selections: SelectionState
+): string | number {
+  try {
+    // Create a function with selections as parameters
+    const func = new Function(...Object.keys(selections), `return ${expression}`);
+    return func(...Object.values(selections));
+  } catch (error) {
+    console.error('Failed to evaluate derived expression:', expression, error);
+    throw error;
   }
+}
+
+// Replace placeholders in a template string with values from selections
+export function replacePlaceholders(template: string, selections: SelectionState): string {
+  let result = template;
+  for (const [key, value] of Object.entries(selections)) {
+    const placeholder = `{${key}}`;
+    result = result.replace(new RegExp(placeholder, 'g'), String(value));
+  }
+  return result;
+}
+
+// Get available options for a structure item
+export async function getStructureOptions(
+  structure: StructureConfig,
+  selections: SelectionState,
+  signal?: AbortSignal
+): Promise<StructureOption[]> {
+  // If it's derived, compute the value (but we don't return options for derived items)
+  if (structure.derived_from) {
+    return [];
+  }
+
+  // If no pathTemplate, we can't fetch options
+  if (!structure.pathTemplate) {
+    return [];
+  }
+
+  // Replace placeholders in pathTemplate
+  const path = replacePlaceholders(structure.pathTemplate, selections);
+
+  // Use parser to load data
+  const parser = structure.parser || 'json';
+  const data = await parseData(path, parser, signal);
+
+  // Extract options using idKey and valueKey
+  const idKey = structure.idKey || 'id';
+  const valueKey = structure.valueKey || 'name';
+
+  const ids = data[idKey];
+  const values = data[valueKey];
+
+  if (!Array.isArray(ids)) {
+    console.error('idKey does not point to an array:', idKey, data);
+    return [];
+  }
+
+  // If valueKey exists and is an array, pair them; otherwise use ids as labels
+  if (Array.isArray(values) && values.length === ids.length) {
+    return ids.map((id, index) => ({
+      id,
+      label: String(values[index]),
+    }));
+  } else {
+    return ids.map((id) => ({
+      id,
+      label: String(id),
+    }));
+  }
+}
+
+// Generic function to get data path for a resource
+export function getResourcePath(resource: ResourceConfig, selections: SelectionState): string {
+  let path = resource.pathTemplate;
+
+  // Replace all placeholders
+  path = replacePlaceholders(path, selections);
+
+  return path;
 }
 
 // Generic function to load 1D data from a resource
 export async function getData1D(
   resource: ResourceConfig,
-  haloId: number,
+  selections: SelectionState,
   signal?: AbortSignal
 ): Promise<Data1DJSON> {
-  const path = getResourcePath(resource, haloId);
+  const path = getResourcePath(resource, selections);
+  const haloId = selections.haloId as number;
 
-  const response = await fetch(resolve(path), { signal });
-  if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${path}`);
-
-  const jsonData = (await response.json()) as Data1DJSON;
+  // Use parser to load data
+  const parser = resource.parser || 'json';
+  const jsonData = await parseData(path, parser, signal);
 
   if (resource.bucket_size > 0) {
     // Extract data for the specific halo ID
-    const haloData = jsonData.data[haloId.toString()];
+    const dataObj = jsonData.data as any;
+    const haloData = dataObj[haloId.toString()];
     if (!haloData) {
       throw new Error(`Halo ${haloId} not found in bundled resource file`);
     }

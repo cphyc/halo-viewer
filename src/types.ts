@@ -1,3 +1,5 @@
+import { ParserReference } from './parsers/types';
+
 export type HaloGlobalInfo = {
   id: string; // e.g., "000001"
   name?: string;
@@ -57,19 +59,42 @@ export type AxisConfig = {
   key?: string;
 };
 
+export type StructureConfig = {
+  id: string;
+  name: string;
+  requires?: string[];
+  derived_from?: string;
+  pathTemplate?: string;
+  idKey?: string;
+  valueKey?: string;
+  parser?: ParserReference;
+};
+
+export type StructureOption = {
+  id: string | number;
+  label: string;
+};
+
+export type SelectionState = {
+  [structureId: string]: string | number;
+};
+
 export type ResourceConfig = {
   id: string;
   name: string;
-  type: '1D' | '2D' | '3D' | 'metadata';
+  type: '1D' | '2D' | '3D' | 'table';
   bucket_size: number;
   pathTemplate: string;
   dataKey?: string;
   xAxis?: AxisConfig;
   yAxis?: AxisConfig;
   downloadable?: boolean;
-  requires?: string[]; // List of required resource IDs for constructing the path
+  requires?: string[];
+  parser?: ParserReference;
 };
 
 export type ResourcesConfig = {
+  root: string;
+  structure: StructureConfig[];
   resources: ResourceConfig[];
 };

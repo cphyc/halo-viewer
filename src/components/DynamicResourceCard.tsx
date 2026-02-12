@@ -1,20 +1,20 @@
 // src/components/DynamicResourceCard.tsx
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { HaloCatalogData, ResourceConfig, Data1D, Data1DJSON } from '../types';
+import { ResourceConfig, Data1D, Data1DJSON, SelectionState } from '../types';
 import { getData1D } from '../api';
 import Data1DChartjs from './Data1DChartjs';
 
 interface DynamicResourceCardProps {
-  halo: HaloCatalogData;
   resource: ResourceConfig;
+  selections: SelectionState;
 }
 
-function useResourceData(resource: ResourceConfig, haloId: number) {
+function useResourceData(resource: ResourceConfig, selections: SelectionState) {
   return useQuery<Data1DJSON>({
-    enabled: !!resource && !!haloId,
-    queryKey: ['resource', resource.id, haloId],
-    queryFn: ({ signal }) => getData1D(resource, haloId, signal),
+    enabled: !!resource && Object.keys(selections).length > 0,
+    queryKey: ['resource', resource.id, selections],
+    queryFn: ({ signal }) => getData1D(resource, selections, signal),
   });
 }
 
@@ -39,8 +39,9 @@ function downloadData(data: Data1D, filename: string, resource: ResourceConfig) 
   URL.revokeObjectURL(url);
 }
 
-export default function DynamicResourceCard({ halo, resource }: DynamicResourceCardProps) {
-  const dataQ = useResourceData(resource, halo.id);
+export default function DynamicResourceCard({ resource, selections }: DynamicResourceCardProps) {
+  const dataQ = useResourceData(resource, selections);
+  const haloId = selections.haloId as number;
 
   const data: Data1D | null = useMemo(() => {
     if (!dataQ.data) return null;
@@ -55,7 +56,12 @@ export default function DynamicResourceCard({ halo, resource }: DynamicResourceC
         throw new Error(`Resource ${resource.id} is missing dataKey for bundled resource`);
         return null;
       }
-      const haloData = dataQ.data[resource.dataKey || 'data'][halo.id.toString()];
+
+      if (!haloId) {
+        return null;
+      }
+
+      const resourceData = dataQ.data[resource.dataKey || 'data'][haloId.toString()];
 
       if (resource.xAxis.key === undefined || resource.yAxis.key === undefined) {
         throw new Error(`Resource ${resource.id} is missing xAxis.key or yAxis.key`);
@@ -72,26 +78,26 @@ export default function DynamicResourceCard({ halo, resource }: DynamicResourceC
         xData = (
           xkey in globalData
             ? globalData[xkey as keyof Data1DJSON]
-            : haloData[xkey as keyof typeof haloData]
+            : resourceData[xkey as keyof typeof resourceData]
         ) as Float64Array;
         yData = (
           ykey in globalData
             ? globalData[ykey as keyof Data1DJSON]
-            : haloData[ykey as keyof typeof haloData]
+            : resourceData[ykey as keyof typeof resourceData]
         ) as Float64Array;
       } else {
-        xData = haloData[xkey as keyof typeof haloData] as Float64Array;
-        yData = haloData[ykey as keyof typeof haloData] as Float64Array;
+        xData = resourceData[xkey as keyof typeof resourceData] as Float64Array;
+        yData = resourceData[ykey as keyof typeof resourceData] as Float64Array;
       }
 
       return { x: xData, y: yData };
     }
     return null;
-  }, [dataQ.data, halo.id, resource]);
+  }, [dataQ.data, haloId, resource]);
 
   const handleDownload = () => {
-    if (!data) return;
-    const filename = `${resource.id}_halo_${halo.id}.json`;
+    if (!data || !haloId) return;
+    const filename = `${resource.id}_halo_${haloId}.json`;
     downloadData(data, filename, resource);
   };
 
@@ -119,11 +125,7 @@ export default function DynamicResourceCard({ halo, resource }: DynamicResourceC
           </button>
         )}
       </div>
-      {dataQ.isLoading && (
-        <div className="muted">
-          Loading {resource.name.toLowerCase()} for halo {halo.id}…
-        </div>
-      )}
+      {dataQ.isLoading && <div className="muted">Loading {resource.name.toLowerCase()}…</div>}
       {dataQ.error && <div className="error">Failed to load {resource.name.toLowerCase()}</div>}
       {data && resource.type === '1D' && (
         <Data1DChartjs

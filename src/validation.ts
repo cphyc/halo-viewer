@@ -7,6 +7,7 @@ import { ResourcesConfig } from './types';
 const ajv = new Ajv({
   allErrors: true,
   verbose: true,
+  useDefaults: true, // Apply default values from schema
 });
 
 // Compile the schema
@@ -30,6 +31,7 @@ export function validateResources(data: unknown): ResourcesConfig {
   // Additional check for unique IDs (not supported by JSON Schema Draft 07)
   const config = data as ResourcesConfig;
   const ids = new Set<string>();
+  const structureIds = new Set<string>();
   const duplicates: string[] = [];
 
   config.resources.forEach((resource) => {
@@ -37,6 +39,13 @@ export function validateResources(data: unknown): ResourcesConfig {
       duplicates.push(resource.id);
     }
     ids.add(resource.id);
+  });
+
+  config.structure.forEach((metadata) => {
+    if (structureIds.has(metadata.id)) {
+      duplicates.push(metadata.id);
+    }
+    structureIds.add(metadata.id);
   });
 
   if (duplicates.length > 0) {
@@ -48,7 +57,7 @@ export function validateResources(data: unknown): ResourcesConfig {
   config.resources.forEach((resource) => {
     if (resource.requires) {
       resource.requires.forEach((requiredId) => {
-        if (!ids.has(requiredId)) {
+        if (!structureIds.has(requiredId)) {
           invalidReferences.push(
             `Resource "${resource.id}" requires non-existent resource "${requiredId}"`
           );
@@ -59,6 +68,41 @@ export function validateResources(data: unknown): ResourcesConfig {
 
   if (invalidReferences.length > 0) {
     throw new Error(`Invalid resource references: ${invalidReferences.join('; ')}`);
+  }
+
+  // Check for circular dependencies in structure
+  function hasCircularDependency(
+    itemId: string,
+    visited: Set<string>,
+    recursionStack: Set<string>
+  ): boolean {
+    visited.add(itemId);
+    recursionStack.add(itemId);
+
+    const item = config.structure.find((s) => s.id === itemId);
+    if (item && item.requires) {
+      for (const reqId of item.requires) {
+        if (!visited.has(reqId)) {
+          if (hasCircularDependency(reqId, visited, recursionStack)) {
+            return true;
+          }
+        } else if (recursionStack.has(reqId)) {
+          return true;
+        }
+      }
+    }
+
+    recursionStack.delete(itemId);
+    return false;
+  }
+
+  const visited = new Set<string>();
+  for (const item of config.structure) {
+    if (!visited.has(item.id)) {
+      if (hasCircularDependency(item.id, visited, new Set())) {
+        throw new Error(`Circular dependency detected in structure starting from "${item.id}"`);
+      }
+    }
   }
 
   return config;

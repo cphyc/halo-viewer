@@ -5,6 +5,17 @@
   "description": "Schema for defining available data resources in the Halo Viewer",
   "type": "object",
   "properties": {
+    "root": {
+      "type": "string",
+      "description": "Root metadata that defines the main grouping of the data (e.g., simulation name)"
+    },
+    "structure": {
+      "type": "array",
+      "description": "List of nested metadata that parametrize resources. Each metadata must have a unique 'id' field.",
+      "items": {
+        "$ref": "#/definitions/structure"
+      }
+    },
     "resources": {
       "type": "array",
       "description": "List of available data resources. Each resource must have a unique 'id' field.",
@@ -13,12 +24,60 @@
       }
     }
   },
-  "required": ["resources"],
+  "required": ["root", "resources", "structure"],
   "additionalProperties": false,
   "definitions": {
+    "structure": {
+      "type": "object",
+      "description": "List of nested metadata that parametrize resources.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Name of the metadata"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the metadata"
+        },
+        "requires": {
+          "type": "array",
+          "description": "List of other metadata IDs that this metadata depends on",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "derived_from": {
+          "type": "string",
+          "description": "A valid JavaScript expression to derive this metadata from the required metadata. Used to automatically compute a metadata from another one.",
+          "default": ""
+        },
+        "pathTemplate": {
+          "type": "string",
+          "description": "Path for accessing the data in JSON format",
+          "default": ""
+        },
+        "idKey": {
+          "type": "string",
+          "description": "Key to access the ids in the JSON",
+          "default": ""
+        },
+        "valueKey": {
+          "type": "string",
+          "description": "Key to access the value in the JSON",
+          "default": ""
+        },
+        "parser": {
+          "type": "string",
+          "description": "Parser to use for loading data. Options: 'json' (default), 'namespace.name' (local parser like 'ascii.rockstarCatalogue'), or 'custom:url#functionName' (external parser)",
+          "default": "json"
+        }
+      },
+      "required": ["id", "name"]
+    },
     "resource": {
       "type": "object",
-      "description": "A data resource (1D, 2D, or 3D data)",
+      "description": "A data resource",
       "properties": {
         "id": {
           "type": "string",
@@ -30,8 +89,8 @@
         },
         "type": {
           "type": "string",
-          "enum": ["1D", "2D", "3D", "metadata"],
-          "description": "Type of the resource (1D, 2D, 3D for data resources, 'metadata' for metadata resources that provide values for path construction)"
+          "enum": ["1D", "2D", "3D", "table"],
+          "description": "Type of the resource (1D, 2D, 3D, table)"
         },
         "bucket_size": {
           "type": "integer",
@@ -66,6 +125,11 @@
             "type": "string"
           },
           "default": []
+        },
+        "parser": {
+          "type": "string",
+          "description": "Parser to use for loading resource data. Options: 'json' (default), 'namespace.name' (local parser), or 'custom:url#functionName' (external parser)",
+          "default": "json"
         }
       },
       "required": ["id", "name", "type"],

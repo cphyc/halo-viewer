@@ -1,36 +1,44 @@
 {
-  "resources": [
+  "root": "simulation_name",
+  "structure": [
     {
-      "id": "simulation_name",
-      "name": "Simulation Name",
-      "type": "metadata",
-      "pathTemplate": "data/simulations.json"
+      "id": "simulationId",
+      "name": "Simulation name",
+      "pathTemplate": "data/simulations.json",
+      "idKey": "simulations",
+      "valueKey": "simulations"
     },
     {
-      "id": "output_id",
+      "id": "outputId",
       "name": "Output ID",
-      "type": "metadata",
-      "pathTemplate": "data/{simulation_name}/outputs.json",
-      "requires": ["simulation_name"]
+      "requires": ["simulationId"],
+      "pathTemplate": "data/catalogues/{simulationId}/outputs.json",
+      "idKey": "outputId",
+      "valueKey": "name"
     },
     {
-      "id": "halo_id",
+      "id": "haloId",
       "name": "Halo ID",
-      "type": "metadata",
-      "requires": ["simulation_name", "output_id"]
+      "requires": ["simulationId", "outputId"],
+      "pathTemplate": "data/catalogues/{simulationId}/halos_{outputId}.0.ascii",
+      "parser": "ascii.rockstarCatalogue",
+      "idKey": "ids",
+      "valueKey": "labels"
     },
     {
-      "id": "bucket_id",
-      "name": "Bucket ID of a halo (e.g., for grouping halos into buckets of 1000)",
-      "type": "metadata",
-      "requires": ["halo_id"]
-    },
+      "id": "haloBucketId",
+      "name": "Bucket of the halo",
+      "requires": ["haloId"],
+      "derived_from": "Math.floor(haloId / 1000)"
+    }
+  ],
+  "resources": [
     {
       "id": "spectrum",
       "name": "Spectra",
       "type": "1D",
       "bucket_size": 1000,
-      "pathTemplate": "data/spectra/{simulation_name}/output_{output_id}/halos_{bucketId}.json.gz",
+      "pathTemplate": "data/spectra/{simulationId}/output_{outputId}/halos_{haloBucketId}.json.gz",
       "dataKey": "data",
       "xAxis": {
         "label": "λ",
@@ -43,14 +51,14 @@
         "key": "total"
       },
       "downloadable": true,
-      "requires": ["simulation_name", "output_id", "halo_id"]
+      "requires": ["simulationId", "outputId", "haloId"]
     },
     {
       "id": "nebc",
       "name": "Spectra (nebular continuum)",
       "type": "1D",
       "bucket_size": 1000,
-      "pathTemplate": "data/spectra/{simulation_name}/output_{output_id}/halos_{bucketId}.json.gz",
+      "pathTemplate": "data/spectra/{simulationId}/output_{outputId}/halos_{haloBucketId}.json.gz",
       "dataKey": "data",
       "xAxis": {
         "label": "λ",
@@ -63,14 +71,14 @@
         "key": "nebc"
       },
       "downloadable": true,
-      "requires": ["simulation_name", "output_id", "halo_id"]
+      "requires": ["simulationId", "outputId", "haloId"]
     },
     {
       "id": "mock",
       "name": "Mock images",
       "type": "2D",
       "bucket_size": 0,
-      "pathTemplate": "data/mocks/{simulation_name}/output_{output_id}/halos_{haloId}.png",
+      "pathTemplate": "data/mocks/{simulationId}/output_{outputId}/halos_{haloId}.png",
       "xAxis": {
         "label": "x",
         "unit": "kpc"
@@ -80,7 +88,7 @@
         "unit": "kpc"
       },
       "downloadable": true,
-      "requires": ["simulation_name", "output_id", "halo_id"]
+      "requires": ["simulationId", "outputId", "haloId"]
     }
   ]
 }
