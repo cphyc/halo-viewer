@@ -26,3 +26,5 @@ tsconfig.tsbuildinfo
 
 # Data directory
 public/demo-halos/
+public/data/
+public/pyodide*/
