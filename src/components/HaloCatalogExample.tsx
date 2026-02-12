@@ -8,6 +8,8 @@ interface HaloCatalogExampleProps {
 }
 
 const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({
+  simulationId,
+  outputId,
   selectedHaloId: externalSelectedHaloId,
 }) => {
   const [massThreshold, setMassThreshold] = useState(1e6); // 1e6 solar masses
@@ -101,7 +103,7 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({
         }}
       >
         <HaloCatalogPointCloud
-          catalogUrl={`data/catalogues/{simulationId}/halos_{outputId}.0.ascii`}
+          catalogUrl={`data/catalogues/${simulationId}/halos_${outputId}.0.ascii`}
           massThreshold={massThreshold}
           pointColor={pointColor}
           selectedHaloId={selectedHaloId}

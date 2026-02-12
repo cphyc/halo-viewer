@@ -15,7 +15,7 @@ function useManifest(simulationId: string, outputId: number) {
   const catalogQuery = useHaloCatalog(simulationId, outputId);
 
   return useQuery({
-    queryKey: ['manifest', 'derived'],
+    queryKey: ['manifest', simulationId, outputId],
     queryFn: async () => {
       if (!catalogQuery.data) {
         throw new Error('Catalog not loaded');
@@ -51,7 +51,7 @@ function useHalo(simulationId: string, outputId: number, id: string | null) {
 function useHaloCatalog(simulationId: string, outputId: number) {
   const catalogUrl = `data/catalogues/${simulationId}/halos_${outputId}.0.ascii`;
   return useQuery<HaloCatalog>({
-    queryKey: ['halo-catalog', catalogUrl],
+    queryKey: ['halo-catalog', simulationId, outputId],
     queryFn: ({ signal }) => getHalos(catalogUrl, signal),
     staleTime: Infinity, // 5 minutes
   });
@@ -102,14 +102,24 @@ function HaloPanel({ halo }: { halo: HaloCatalogData }) {
 function Shell() {
   const resourcesQ = useResourcesConfig();
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [simulationId, setSimulationId] = useState<string>('MEGATRON_CP_NEW');
+  enum SimulationIds {
+    MEGATRON_CP_NEW = 'MEGATRON_CP_NEW',
+    MEGATRON_CP_599 = 'MEGATRON_CP_599',
+    MEGATRON_CP_599_var95 = 'MEGATRON_CP_599_var95',
+  }
+  const [simulationId, setSimulationId] = useState<SimulationIds>(SimulationIds.MEGATRON_CP_NEW);
   const [outputId, setOutputId] = useState<number>(10);
   const manQ = useManifest(simulationId, outputId);
   const haloQ = useHalo(simulationId, outputId, currentId);
 
+  // Reset currentId when simulation or output changes
+  useEffect(() => {
+    setCurrentId(null);
+  }, [simulationId, outputId]);
+
   useEffect(() => {
     if (manQ.data && !currentId) {
-      const i = manQ.data.halos.length - 1;
+      const i = 0;
       console.log(`Setting to ${manQ.data.halos[i]?.id}.`);
       setCurrentId(manQ.data.halos[i]?.id ?? null);
     }
@@ -120,6 +130,23 @@ function Shell() {
       <header className="header">
         <h1>Halo Viewer</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select
+            value={simulationId}
+            onChange={(e) => setSimulationId(e.target.value as SimulationIds)}
+          >
+            {Object.entries(SimulationIds).map(([key, value]) => (
+              <option key={key} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+          <select value={outputId} onChange={(e) => setOutputId(Number(e.target.value))}>
+            {Array.from({ length: 20 }, (_, i) => i + 1).map((id) => (
+              <option key={id} value={id}>
+                Output {id}
+              </option>
+            ))}
+          </select>
           {manQ.isSuccess && (
             <select value={currentId ?? ''} onChange={(e) => setCurrentId(e.target.value)}>
               {manQ.data!.halos.map((h) => (
