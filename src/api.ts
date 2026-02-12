@@ -74,7 +74,7 @@ export async function getHalos(
       for (const line of lines) {
         // Parse Hubble parameter from header comments
         if (line.startsWith('#Om')) {
-          const match = line.match(/#h0\s*=\s*([\d.]+)/);
+          const match = line.match(/h\s*=\s*([\d.]+)/);
           if (match) {
             h0 = parseFloat(match[1]);
           }
@@ -95,7 +95,7 @@ export async function getHalos(
         const y = (parseFloat(columns[headers.indexOf('y')]) - 25) / h0;
         const z = (parseFloat(columns[headers.indexOf('z')]) - 25) / h0;
         const rc = parseFloat(columns[headers.indexOf('Rs')]) / 1000 / h0;
-        const r200b = parseFloat(columns[headers.indexOf('r200b')]) / 1000 / h0;
+        const rvir = parseFloat(columns[headers.indexOf('rvir')]) / 1000 / h0;
 
         // Skip invalid data
         if (
@@ -105,12 +105,12 @@ export async function getHalos(
           isNaN(y) ||
           isNaN(z) ||
           isNaN(rc) ||
-          isNaN(r200b)
+          isNaN(rvir)
         ) {
           continue;
         }
 
-        haloData.push({ id, x, y, z, mass, r200b, rc });
+        haloData.push({ id, x, y, z, mass, rvir: rvir, rc });
       }
 
       if (haloData.length === 0) {

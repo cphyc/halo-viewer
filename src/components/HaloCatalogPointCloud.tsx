@@ -42,7 +42,7 @@ const HaloCatalogPointCloud: React.FC<HaloCatalogPointCloudProps> = ({
       x: filteredHalos.map((halo) => halo.x),
       y: filteredHalos.map((halo) => halo.y),
       z: filteredHalos.map((halo) => halo.z),
-      rvir: filteredHalos.map((halo) => halo.r200b),
+      rvir: filteredHalos.map((halo) => halo.rvir),
       rc: filteredHalos.map((halo) => halo.rc),
       ids: filteredHalos.map((halo) => halo.id),
       filteredStats,

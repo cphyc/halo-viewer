@@ -12,7 +12,7 @@ export type HaloCatalogData = {
   y: number;
   z: number;
   mass: number; // m200b column in Msun (h-corrected)
-  r200b: number; // virial radius in Mpc (h-corrected)
+  rvir: number; // virial radius in Mpc (h-corrected)
   rc: number; // core radius in Mpc (h-corrected)
 };
 

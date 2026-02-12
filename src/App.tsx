@@ -78,7 +78,7 @@ function HaloPanel({ halo }: { halo: HaloCatalogData }) {
 
       <InfoRow
         labelLatex="R_{200b}"
-        value={halo.r200b * 1000} // Convert Mpc to kpc for display
+        value={halo.rvir * 1000} // Convert Mpc to kpc for display
         unit="\mathrm{kpc}"
       />
 
