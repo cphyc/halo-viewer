@@ -10,9 +10,9 @@ import HaloCatalogExample from './components/HaloCatalogExample';
 
 const qc = new QueryClient();
 
-function useManifest() {
+function useManifest(simulationId: string, outputId: number) {
   // Use the same catalog query that HaloCatalogPointCloud uses
-  const catalogQuery = useHaloCatalog();
+  const catalogQuery = useHaloCatalog(simulationId, outputId);
 
   return useQuery({
     queryKey: ['manifest', 'derived'],
@@ -40,15 +40,16 @@ function useManifest() {
   });
 }
 
-function useHalo(id: string | null) {
+function useHalo(simulationId: string, outputId: number, id: string | null) {
   return useQuery<HaloCatalogData | null>({
     enabled: !!id,
-    queryKey: ['halo', id],
-    queryFn: ({ signal }) => getHalo(id!, signal),
+    queryKey: ['halo', simulationId, outputId, id],
+    queryFn: ({ signal }) => getHalo(simulationId, outputId, id!, signal),
   });
 }
 
-function useHaloCatalog(catalogUrl: string = 'demo-halos/cutouts/halos_00100.ascii') {
+function useHaloCatalog(simulationId: string, outputId: number) {
+  const catalogUrl = `data/catalogues/${simulationId}/halos_${outputId}.0.ascii`;
   return useQuery<HaloCatalog>({
     queryKey: ['halo-catalog', catalogUrl],
     queryFn: ({ signal }) => getHalos(catalogUrl, signal),
@@ -99,10 +100,12 @@ function HaloPanel({ halo }: { halo: HaloCatalogData }) {
 }
 
 function Shell() {
-  const manQ = useManifest();
   const resourcesQ = useResourcesConfig();
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const haloQ = useHalo(currentId);
+  const [simulationId, setSimulationId] = useState<string>('MEGATRON_CP_NEW');
+  const [outputId, setOutputId] = useState<number>(10);
+  const manQ = useManifest(simulationId, outputId);
+  const haloQ = useHalo(simulationId, outputId, currentId);
 
   useEffect(() => {
     if (manQ.data && !currentId) {
@@ -137,15 +140,23 @@ function Shell() {
           <div className="grid2">
             <CutoutRunner
               cutoutUrl={resolveURL(
-                `demo-halos/cutouts/output_00100/halo_${haloQ.data.id}_gas.bin`
+                `data/cutouts/${simulationId}/output_${String(outputId).padStart(5, '0')}/halo_${haloQ.data.id}_gas.bin`
               )}
             />
-            <HaloCatalogExample selectedHaloId={currentId ? parseInt(currentId) : undefined} />
+            <HaloCatalogExample
+              simulationId={simulationId}
+              outputId={outputId}
+              selectedHaloId={currentId ? parseInt(currentId) : undefined}
+            />
             <HaloPanel halo={haloQ.data} />
             {/* Dynamic resource cards based on resources.json */}
-            {resourcesQ.data?.resources.map((resource) => (
-              <DynamicResourceCard key={resource.id} halo={haloQ.data!} resource={resource} />
-            ))}
+            {resourcesQ.data?.resources
+              .filter((resource) => {
+                resource.type !== 'metadata';
+              })
+              .map((resource) => (
+                <DynamicResourceCard key={resource.id} halo={haloQ.data!} resource={resource} />
+              ))}
           </div>
         </>
       )}

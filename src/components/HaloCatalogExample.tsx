@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import HaloCatalogPointCloud from './HaloCatalogPointCloud';
 
 interface HaloCatalogExampleProps {
+  simulationId: string;
+  outputId: number;
   selectedHaloId?: number;
 }
 
@@ -99,7 +101,7 @@ const HaloCatalogExample: React.FC<HaloCatalogExampleProps> = ({
         }}
       >
         <HaloCatalogPointCloud
-          catalogUrl="demo-halos/cutouts/halos_00100.ascii"
+          catalogUrl={`data/catalogues/{simulationId}/halos_{outputId}.0.ascii`}
           massThreshold={massThreshold}
           pointColor={pointColor}
           selectedHaloId={selectedHaloId}

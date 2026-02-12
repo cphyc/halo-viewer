@@ -5,7 +5,7 @@ import PointCloud3D from './PointCloud3D';
 import InfoRow from './InfoRow';
 
 interface HaloCatalogPointCloudProps {
-  catalogUrl?: string;
+  catalogUrl: string;
   pointSize?: number;
   pointColor?: string;
   massThreshold?: number;
@@ -13,7 +13,7 @@ interface HaloCatalogPointCloudProps {
 }
 
 const HaloCatalogPointCloud: React.FC<HaloCatalogPointCloudProps> = ({
-  catalogUrl = 'demo-halos/cutouts/halos_00100.ascii',
+  catalogUrl,
   pointColor = '#4a90e2',
   massThreshold = 0,
   selectedHaloId,

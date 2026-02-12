@@ -30,14 +30,16 @@ export async function fetchJSON<T>(path: string, signal?: AbortSignal): Promise<
   return res.json() as Promise<T>;
 }
 
-export async function getHalo(id: string, signal?: AbortSignal): Promise<HaloCatalogData | null> {
-  return getHaloFromCatalog(parseInt(id), signal);
+export async function getHalo(
+  simulationId: string,
+  outputId: number,
+  id: string,
+  signal?: AbortSignal
+): Promise<HaloCatalogData | null> {
+  return getHaloFromCatalog(simulationId, outputId, parseInt(id), signal);
 }
 
-export async function getHalos(
-  catalogUrl: string = 'demo-halos/cutouts/halos_00100.ascii',
-  signal?: AbortSignal
-): Promise<HaloCatalog> {
+export async function getHalos(catalogUrl: string, signal?: AbortSignal): Promise<HaloCatalog> {
   // Return cached data if available
   if (haloCatalogCache) {
     return haloCatalogCache;
@@ -152,11 +154,14 @@ export async function getHalos(
 }
 
 export async function getHaloFromCatalog(
+  simulation_id: string,
+  output_id: number,
   haloId: number,
   signal?: AbortSignal
 ): Promise<HaloCatalogData | null> {
   console.log('Fetching halo from catalog:', haloId);
-  const catalog = await getHalos('demo-halos/cutouts/halos_00100.ascii', signal);
+  const url = `data/{simulation_id}/halos_{output_id}.0.ascii`;
+  const catalog = await getHalos(url, signal);
   return catalog.halos.find((h) => h.id === haloId) || null;
 }
 
