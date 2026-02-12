@@ -16,8 +16,11 @@ async function ensurePyodide() {
   if (pyodide) return pyodide;
   post('status', { status: 'loading pyodide' });
   // @ts-ignore
-  // Use CDN for pyodide packages - the npm package only includes core files
-  pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.29.3/full/' });
+  // Use local pyodide distribution to avoid CSP issues
+  pyodide = await loadPyodide({
+    indexURL: `${import.meta.env.BASE_URL}/pyodide-0.29.3/`,
+    packages: ['micropip', 'numpy', 'scipy', 'matplotlib'],
+  });
   return pyodide;
 }
 

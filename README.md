@@ -26,6 +26,29 @@ cd halo-viewer
 git submodule update --init --recursive
 ```
 
+## Setting up Pyodide
+
+The viewer uses Pyodide to run Python in the browser. Download and extract version 0.29.3:
+
+```bash
+# Download and extract Pyodide
+(
+  cd public
+  wget https://github.com/pyodide/pyodide/releases/download/0.29.3/pyodide-0.29.3.tar.bz2
+  tar -xjf pyodide-0.29.3.tar.bz2
+  mv pyodide pyodide-0.29.3
+  rm pyodide-0.29.3.tar.bz2
+)
+```
+
+### Updating Pyodide to a newer version
+
+1. Download from [Pyodide releases](https://github.com/pyodide/pyodide/releases)
+2. Extract to `public/pyodide-X.Y.Z/`
+3. Update `indexURL` in `src/pyodide/pyWorker.ts`
+4. Update `pyodide` version in `package.json`
+5. Run `npm install`
+
 ## Building 'wheels'
 
 The viewer includes a Python environment running in the browser. This allows
