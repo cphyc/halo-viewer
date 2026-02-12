@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StructureConfig, SelectionState } from '../types';
 import { useStructureOptions } from '../hooks/useHierarchicalSelection';
+import TableSelector from './TableSelector';
 
 interface SelectionPanelProps {
   orderedStructure: StructureConfig[];
@@ -27,6 +28,7 @@ function StructureItemSelector({
   const currentValue = selections[structure.id];
   const isDerived = !!structure.derived_from;
   const isSelected = currentValue !== undefined;
+  const selectionType = structure.selectionType || 'dropdown';
 
   // Check if all requirements are met
   const requirementsMet =
@@ -36,8 +38,12 @@ function StructureItemSelector({
     return null;
   }
 
+  const handleClear = () => {
+    onSelectionChange(structure.id, null);
+  };
+
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div style={{ marginBottom: 12 }}>
       <div
         style={{
           display: 'flex',
@@ -75,7 +81,43 @@ function StructureItemSelector({
           </span>
         ) : (
           <>
-            {!isCollapsed && (
+            {isCollapsed && currentValue !== undefined && (
+              <span style={{ color: '#666', flex: 1 }}>
+                {optionsQuery.data?.find((opt) => opt.id === currentValue)?.label ||
+                  String(currentValue)}
+              </span>
+            )}
+            {isSelected && (
+              <button
+                onClick={handleClear}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  background: '#ff5252',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 3,
+                }}
+                title="Clear selection"
+              >
+                ✕ Clear
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {!isCollapsed && !isDerived && (
+        <div style={{ marginTop: 8, marginLeft: 32 }}>
+          {selectionType === 'table' ? (
+            <TableSelector
+              structure={structure}
+              selections={selections}
+              onSelectionChange={onSelectionChange}
+            />
+          ) : (
+            <>
               <select
                 value={currentValue !== undefined ? String(currentValue) : ''}
                 onChange={(e) => {
@@ -89,7 +131,7 @@ function StructureItemSelector({
                   }
                 }}
                 disabled={optionsQuery.isLoading}
-                style={{ flex: 1, maxWidth: 300 }}
+                style={{ width: '100%', maxWidth: 400 }}
               >
                 <option value="">-- Select {structure.name} --</option>
                 {optionsQuery.data?.map((option) => (
@@ -98,18 +140,12 @@ function StructureItemSelector({
                   </option>
                 ))}
               </select>
-            )}
-            {isCollapsed && currentValue !== undefined && (
-              <span style={{ color: '#666' }}>
-                {optionsQuery.data?.find((opt) => opt.id === currentValue)?.label ||
-                  String(currentValue)}
-              </span>
-            )}
-            {optionsQuery.isLoading && <span className="muted">Loading options…</span>}
-            {optionsQuery.error && <span className="error">Failed to load options</span>}
-          </>
-        )}
-      </div>
+              {optionsQuery.isLoading && <span className="muted">Loading options…</span>}
+              {optionsQuery.error && <span className="error">Failed to load options</span>}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

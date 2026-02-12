@@ -1,5 +1,12 @@
 import { ParserReference } from './parsers/types';
 
+export type TableColumnConfig = {
+  key: string;
+  label: string;
+  sortable?: boolean;
+  defaultSort?: 'asc' | 'desc';
+};
+
 export type HaloGlobalInfo = {
   id: string; // e.g., "000001"
   name?: string;
@@ -68,6 +75,8 @@ export type StructureConfig = {
   idKey?: string;
   valueKey?: string;
   parser?: ParserReference;
+  selectionType?: 'dropdown' | 'table';
+  tableColumns?: TableColumnConfig[];
 };
 
 export type StructureOption = {

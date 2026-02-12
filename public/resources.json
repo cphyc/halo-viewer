@@ -23,7 +23,21 @@
       "pathTemplate": "data/catalogues/{simulationId}/halos_{outputId}.0.ascii",
       "parser": "ascii.rockstarCatalogue",
       "idKey": "ids",
-      "valueKey": "labels"
+      "valueKey": "labels",
+      "selectionType": "table",
+      "tableColumns": [
+        { "key": "ids", "label": "ID", "sortable": true },
+        {
+          "key": "masses",
+          "label": "$M_{\\mathrm{vir}}$ ($M_\\odot$)",
+          "sortable": true,
+          "defaultSort": "desc"
+        },
+        { "key": "rvirs", "label": "$R_{\\mathrm{vir}}$ (Mpc)", "sortable": true },
+        { "key": "positions_x", "label": "$x$ (Mpc)", "sortable": true },
+        { "key": "positions_y", "label": "$y$ (Mpc)", "sortable": true },
+        { "key": "positions_z", "label": "$z$ (Mpc)", "sortable": true }
+      ]
     },
     {
       "id": "haloBucketId",

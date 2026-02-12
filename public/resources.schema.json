@@ -71,6 +71,19 @@
           "type": "string",
           "description": "Parser to use for loading data. Options: 'json' (default), 'namespace.name' (local parser like 'ascii.rockstarCatalogue'), or 'custom:url#functionName' (external parser)",
           "default": "json"
+        },
+        "selectionType": {
+          "type": "string",
+          "enum": ["dropdown", "table"],
+          "description": "Type of selection UI to display. 'dropdown' for standard select element, 'table' for sortable/filterable table.",
+          "default": "dropdown"
+        },
+        "tableColumns": {
+          "type": "array",
+          "description": "Column configuration for table selection type. Defines which columns to show and how.",
+          "items": {
+            "$ref": "#/definitions/tableColumn"
+          }
         }
       },
       "required": ["id", "name"]
@@ -207,6 +220,31 @@
         }
       },
       "required": ["label", "unit"]
+    },
+    "tableColumn": {
+      "type": "object",
+      "description": "Configuration for a table column",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Key in the parsed data object for this column"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label for the column header"
+        },
+        "sortable": {
+          "type": "boolean",
+          "description": "Whether the column can be sorted",
+          "default": true
+        },
+        "defaultSort": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "description": "Default sort direction for this column"
+        }
+      },
+      "required": ["key", "label"]
     }
   }
 }
