@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, SortingState } from '@tanstack/react-table';
 import DataTable from './DataTable';
 import { StructureConfig, SelectionState, TableColumnConfig } from '../types';
 import { replacePlaceholders } from '../api';
@@ -40,6 +40,19 @@ export default function TableSelector({
 }: TableSelectorProps) {
   const dataQuery = useTableData(structure, selections);
   const currentValue = selections[structure.id];
+
+  // Lift sorting state to TableSelector so it persists across re-renders
+  const [sorting, setSorting] = useState<SortingState>(() => {
+    // Initialize sorting from defaultSort in tableColumns
+    if (!structure.tableColumns) {
+      return [];
+    }
+    const defaultSortColumn = structure.tableColumns.find((col) => col.defaultSort);
+    if (defaultSortColumn) {
+      return [{ id: defaultSortColumn.key, desc: defaultSortColumn.defaultSort === 'desc' }];
+    }
+    return [];
+  });
 
   // Build columns from tableColumns config
   const columns = useMemo<ColumnDef<any, any>[]>(() => {
@@ -138,6 +151,8 @@ export default function TableSelector({
         enableSorting={true}
         enableFiltering={true}
         maxHeight="400px"
+        sorting={sorting}
+        onSortingChange={setSorting}
       />
     </div>
   );
