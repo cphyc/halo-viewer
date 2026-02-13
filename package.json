@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.56.2",
-    "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.13.18",
     "@types/three": "^0.181.0",
+    "ag-grid-community": "^35.1.0",
+    "ag-grid-react": "^35.1.0",
     "ajv": "^8.17.1",
     "chart.js": "^4.5.1",
     "gsap": "^3.13.0",

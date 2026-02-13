@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ColumnDef, SortingState } from '@tanstack/react-table';
-import DataTable from './DataTable';
+import DataTable from './DataTable-AG';
 import { StructureConfig, SelectionState, TableColumnConfig } from '../types';
 import { replacePlaceholders } from '../api';
 import { parseData } from '../parsers';
@@ -42,7 +41,7 @@ export default function TableSelector({
   const currentValue = selections[structure.id];
 
   // Lift sorting state to TableSelector so it persists across re-renders
-  const [sorting, setSorting] = useState<SortingState>(() => {
+  const [sorting, setSorting] = useState<{ id: string; desc: boolean }[]>(() => {
     // Initialize sorting from defaultSort in tableColumns
     if (!structure.tableColumns) {
       return [];
@@ -54,29 +53,16 @@ export default function TableSelector({
     return [];
   });
 
-  // Build columns from tableColumns config
-  const columns = useMemo<ColumnDef<any, any>[]>(() => {
+  // Build columns from tableColumns config for AG-Grid
+  const columns = useMemo(() => {
     if (!structure.tableColumns) {
       return [];
     }
 
     return structure.tableColumns.map((colConfig: TableColumnConfig) => ({
-      accessorKey: colConfig.key,
-      header: colConfig.label,
-      enableSorting: colConfig.sortable ?? true,
-      // Format numbers with appropriate precision
-      cell: (info: any) => {
-        const value = info.getValue();
-        if (typeof value === 'number') {
-          // Scientific notation for very large/small numbers
-          if (Math.abs(value) > 1e6 || (Math.abs(value) < 0.01 && value !== 0)) {
-            return value.toExponential(2);
-          }
-          // Regular formatting with 2 decimals
-          return value.toFixed(2);
-        }
-        return value;
-      },
+      key: colConfig.key,
+      label: colConfig.label,
+      sortable: colConfig.sortable ?? true,
     }));
   }, [structure.tableColumns]);
 
@@ -144,7 +130,7 @@ export default function TableSelector({
     <div>
       <DataTable
         data={tableData}
-        columns={columns}
+        columns={columns as any}
         onRowSelect={handleRowSelect}
         selectedRowId={currentValue}
         getRowId={getRowId}

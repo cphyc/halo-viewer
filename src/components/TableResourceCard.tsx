@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
+import DataTable from './DataTable-AG';
 import { ResourceConfig, SelectionState } from '../types';
 import { getResourcePath } from '../api';
 import { parseData } from '../parsers';
-import DataTable from './DataTable';
 
 interface TableResourceCardProps {
   resource: ResourceConfig;
@@ -26,25 +25,15 @@ function useTableResourceData(resource: ResourceConfig, selections: SelectionSta
 export default function TableResourceCard({ resource, selections }: TableResourceCardProps) {
   const dataQ = useTableResourceData(resource, selections);
 
-  // Build columns from parsed data keys
-  const columns = useMemo<ColumnDef<any, any>[]>(() => {
+  // Build column definitions for AG-Grid
+  const columns = useMemo(() => {
     if (!dataQ.data) return [];
 
     const keys = Object.keys(dataQ.data);
     return keys.map((key) => ({
-      accessorKey: key,
-      header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
-      enableSorting: true,
-      cell: (info: any) => {
-        const value = info.getValue();
-        if (typeof value === 'number') {
-          if (Math.abs(value) > 1e6 || (Math.abs(value) < 0.01 && value !== 0)) {
-            return value.toExponential(2);
-          }
-          return value.toFixed(2);
-        }
-        return value;
-      },
+      key,
+      label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+      sortable: true,
     }));
   }, [dataQ.data]);
 
@@ -83,61 +72,71 @@ export default function TableResourceCard({ resource, selections }: TableResourc
   const handleDownload = () => {
     if (!dataQ.data) return;
 
-    const csv = Object.keys(dataQ.data).join(',') + '\n';
-    const rows = tableData.map((row) =>
-      Object.values(row)
-        .map((v) => JSON.stringify(v))
-        .join(',')
-    );
-    const csvContent = csv + rows.join('\n');
+    const csv =
+      Object.keys(dataQ.data).join(',') +
+      '\n' +
+      tableData
+        .map((row) =>
+          Object.values(row)
+            .map((v) => JSON.stringify(v))
+            .join(',')
+        )
+        .join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `${resource.id}.csv`;
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
+  if (dataQ.isLoading) {
+    return (
+      <div className="card">
+        <div className="card-title">{resource.name}</div>
+        <div className="muted">Loading...</div>
+      </div>
+    );
+  }
+
+  if (dataQ.error) {
+    return (
+      <div className="card">
+        <div className="card-title">{resource.name}</div>
+        <div className="error">Failed to load data</div>
+      </div>
+    );
+  }
+
+  if (!dataQ.data || tableData.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-title">{resource.name}</div>
+        <div className="muted">No data available</div>
+      </div>
+    );
+  }
+
   return (
     <div className="card">
-      <div
-        className="card-title"
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-      >
-        <span>{resource.name}</span>
-        {resource.downloadable !== false && tableData.length > 0 && (
-          <button
-            onClick={handleDownload}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              background: '#4a90e2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-            }}
-          >
+      <div className="card-title">
+        {resource.name}
+        {resource.downloadable && (
+          <button onClick={handleDownload} style={{ marginLeft: 16, fontSize: 12 }}>
             Download CSV
           </button>
         )}
       </div>
 
-      {dataQ.isLoading && <div className="muted">Loading {resource.name.toLowerCase()}…</div>}
-      {dataQ.error && <div className="error">Failed to load {resource.name.toLowerCase()}</div>}
-      {tableData.length > 0 && (
-        <DataTable
-          data={tableData}
-          columns={columns}
-          enableSorting={true}
-          enableFiltering={true}
-          maxHeight="500px"
-        />
-      )}
+      <DataTable
+        data={tableData}
+        columns={columns}
+        enableSorting={true}
+        enableFiltering={true}
+        maxHeight="500px"
+      />
     </div>
   );
 }
